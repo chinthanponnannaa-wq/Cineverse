@@ -1,0 +1,82 @@
+<!-- TOAST NOTIFICATION -->
+<div id="toast" class="fixed top-6 right-6 z-[99999] bg-[#10182B] text-white border border-[#1677FF]/40 rounded-2xl px-5 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.9)] hidden items-center gap-3 transition">
+  <div class="w-7 h-7 rounded-full bg-[#1677FF] grid place-items-center text-xs font-black text-white">✓</div>
+  <div id="toastMsg" class="text-xs font-bold tracking-wide">Action completed</div>
+</div>
+
+<!-- NAVBAR -->
+<div id="navWrap" class="fixed top-0 inset-x-0 z-50 flex justify-center pt-5 px-3 pointer-events-none hidden">
+  <nav id="navbar" class="pointer-events-auto w-full max-w-[1280px] bg-[#0B1020]/90 glass border border-white/10 rounded-full px-4 py-2.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.8)] transition-all duration-500">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 cursor-pointer" data-view="home">
+        <div class="w-9 h-9 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-[16px] tracking-tighter shadow-[0_0_15px_rgba(22,119,255,0.5)]">◐</div>
+        <span class="font-black tracking-[-0.04em] text-[18px] text-white">CINEVERSE</span>
+        <span class="hidden md:inline-flex text-[9px] font-black tracking-[0.14em] bg-[#1677FF]/15 text-[#00A8E8] border border-[#00A8E8]/30 px-2.5 py-1 rounded-full">STORE</span>
+      </div>
+      <div id="navLinksContainer" class="hidden lg:flex items-center bg-white/5 p-1 rounded-full gap-1 border border-white/10">
+        <button data-view="home" class="nav-btn active bg-[#1677FF] text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] shadow-[0_4px_16px_rgba(22,119,255,0.35)] transition">DISCOVER</button>
+        <button data-view="library" class="nav-btn text-[#C7D0E0] hover:text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] transition">LIBRARY <span id="libCount" class="ml-1 hidden bg-[#00A8E8] text-black px-1.5 py-0.5 rounded-full text-[9px] font-bold">0</span></button>
+        <button data-view="cart" class="nav-btn text-[#C7D0E0] hover:text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] flex items-center gap-2 transition">CART <span id="cartBadge" class="bg-[#1677FF] text-white min-w-[20px] h-5 grid place-items-center rounded-full text-[10px] px-1 font-black">0</span></button>
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <!-- NAVBAR SEARCH INPUT WITH SEARCH SUGGESTION DROPDOWN PANEL -->
+      <div id="navSearchContainer" class="relative hidden md:flex items-center gap-2 bg-white/5 rounded-full px-3.5 py-1.5 border border-white/10 focus-within:border-[#1677FF]/60 transition">
+        <i class="ri-search-line text-[#8491A7]"></i>
+        <input id="searchInput" placeholder="Search movies..." autocomplete="off" class="bg-transparent outline-none text-xs font-medium w-[150px] xl:w-[180px] text-white placeholder:text-[#8491A7]">
+        
+        <!-- SEARCH SUGGESTIONS DROPDOWN PANEL -->
+        <div id="searchDropdown" class="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-[#0B1020]/95 glass border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] hidden flex-col gap-1 max-h-[360px] overflow-y-auto z-50">
+          <div id="searchDropdownList" class="flex flex-col gap-1"></div>
+        </div>
+      </div>
+
+      <!-- AUTHENTICATED NAVBAR VOICE MICROPHONE BUTTON -->
+      <button id="voiceBtn" title="Voice Search (Tap to speak)" class="w-10 h-10 rounded-full bg-[#1677FF] text-white grid place-items-center hover:scale-105 hover:bg-[#3D8BFF] transition shadow-[0_4px_20px_rgba(22,119,255,0.4)]"><i class="ri-mic-line text-[18px]"></i></button>
+      <button id="navProfileBtn" data-view="profile" class="nav-btn hidden md:grid w-10 h-10 rounded-full bg-[#10182B] text-white place-items-center overflow-hidden border border-[#00A8E8]/40 hover:border-[#1677FF] transition">
+        <img id="navAvatarImg" src="" style="object-fit: contain;" class="w-full h-full p-0.5">
+      </button>
+      <button id="loginBtn" data-view="login" class="hidden md:inline-flex bg-[#1677FF] text-white px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition">LOGIN</button>
+      <button id="mobileMenuBtn" class="lg:hidden w-10 h-10 rounded-full bg-white/10 text-white border border-white/10 grid place-items-center"><i class="ri-menu-line"></i></button>
+    </div>
+  </nav>
+</div>
+
+<!-- MOBILE MENU -->
+<div id="mobileMenu" class="fixed inset-0 z-40 bg-[#05070D]/95 backdrop-blur-2xl hidden flex-col pt-24 px-6 gap-2 text-white border-b border-white/10">
+  <button data-view="home" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">DISCOVER</button>
+  <button data-view="library" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">LIBRARY</button>
+  <button data-view="cart" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">CART</button>
+  <button data-view="profile" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">PROFILE</button>
+  <button data-view="login" class="mobile-link text-left py-4 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">LOGIN</button>
+</div>
+
+<!-- VOICE ASSISTANT PANEL -->
+<div id="voicePanel" class="fixed bottom-6 right-6 z-40 w-[340px] max-w-[calc(100vw-24px)] bg-[#10182B] rounded-[28px] shadow-[0_25px_70px_rgba(0,0,0,0.9)] border border-white/15 p-6 hidden text-white">
+  <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 grid place-items-center"><i class="ri-customer-service-2-line"></i></div>
+      <div>
+        <div class="font-black text-sm leading-none text-white">CINE VOICE ASSIST</div>
+        <div class="text-[10px] font-bold tracking-widest text-[#00A8E8] mt-0.5">TAP TO SPEAK / STOP</div>
+      </div>
+    </div>
+    <button id="closeVoice" class="w-8 h-8 rounded-full bg-white/10 text-white grid place-items-center hover:bg-white/20 transition"><i class="ri-close-line"></i></button>
+  </div>
+  <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+    <div class="text-xs font-bold tracking-widest text-[#8491A7] mb-2">VOICE COMMAND EXAMPLES</div>
+    <div class="flex flex-wrap gap-2">
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Find Dune”</button>
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Show action movies”</button>
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Open cart”</button>
+    </div>
+  </div>
+  <div id="waveArea" class="h-[72px] bg-[#05070D] rounded-2xl flex items-center justify-center gap-1.5 relative overflow-hidden border border-white/10">
+    <div class="wave flex items-end gap-1.5 h-8 opacity-30" id="waveAnim">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div id="listeningLabel" class="absolute inset-0 grid place-items-center text-[#00A8E8] font-black tracking-widest text-xs hidden">LISTENING... TAP AGAIN TO FINISH</div>
+    <div id="idleLabel" class="absolute inset-0 grid place-items-center text-white/60 font-bold tracking-widest text-[11px]">TAP MICROPHONE TO SPEAK</div>
+  </div>
+  <button id="micAction" class="mt-4 w-full bg-[#1677FF] text-white font-black py-3 rounded-full flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition shadow-[0_0_20px_rgba(22,119,255,0.3)]"><span class="w-2.5 h-2.5 bg-[#00A8E8] rounded-full animate-pulse"></span> TAP TO SPEAK / STOP</button>
+</div>

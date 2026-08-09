@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineVerse — Discover. Purchase. Rent. Own.</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css" rel="stylesheet">
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      colors:{
+        brand:{
+          500:'#1677FF',
+          600:'#3D8BFF',
+          accent:'#00A8E8'
+        },
+        navy:{
+          950:'#05070D',
+          900:'#0B1020',
+          850:'#10182B',
+          800:'#162038'
+        }
+      },
+      fontFamily:{
+        syne:['Syne','sans-serif'],
+        grotesk:['Space Grotesk','sans-serif'],
+        inter:['Inter','sans-serif'],
+      }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#05070D] text-[#FFFFFF] antialiased overflow-x-hidden selection:bg-[#1677FF] selection:text-white">
+
+<!-- TOAST NOTIFICATION (HIGH Z-INDEX z-[99999] TO ALWAYS RENDER ABOVE NAVBAR & MODALS) -->
+<div id="toast" class="fixed top-6 right-6 z-[99999] bg-[#10182B] text-white border border-[#1677FF]/40 rounded-2xl px-5 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.9)] hidden items-center gap-3 transition">
+  <div class="w-7 h-7 rounded-full bg-[#1677FF] grid place-items-center text-xs font-black text-white">✓</div>
+  <div id="toastMsg" class="text-xs font-bold tracking-wide">Action completed</div>
+</div>
+
+<!-- NAVBAR (HIDDEN BY DEFAULT WHEN UN-AUTHENTICATED / ON LOGIN VIEW) -->
+<div id="navWrap" class="fixed top-0 inset-x-0 z-50 flex justify-center pt-5 px-3 pointer-events-none hidden">
+  <nav id="navbar" class="pointer-events-auto w-full max-w-[1280px] bg-[#0B1020]/90 glass border border-white/10 rounded-full px-4 py-2.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.8)] transition-all duration-500">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
+        <div class="w-9 h-9 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-[16px] tracking-tighter shadow-[0_0_15px_rgba(22,119,255,0.5)]">◐</div>
+        <span class="font-black tracking-[-0.04em] text-[18px] text-white">CINEVERSE</span>
+        <span class="hidden md:inline-flex text-[9px] font-black tracking-[0.14em] bg-[#1677FF]/15 text-[#00A8E8] border border-[#00A8E8]/30 px-2.5 py-1 rounded-full">STORE</span>
+      </div>
+      <div id="navLinksContainer" class="hidden lg:flex items-center bg-white/5 p-1 rounded-full gap-1 border border-white/10">
+        <button data-view="home" class="nav-btn active bg-[#1677FF] text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] shadow-[0_4px_16px_rgba(22,119,255,0.35)] transition">DISCOVER</button>
+        <button data-view="library" class="nav-btn text-[#C7D0E0] hover:text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] transition">LIBRARY <span id="libCount" class="ml-1 hidden bg-[#00A8E8] text-black px-1.5 py-0.5 rounded-full text-[9px] font-bold">0</span></button>
+        <button data-view="cart" class="nav-btn text-[#C7D0E0] hover:text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] flex items-center gap-2 transition">CART <span id="cartBadge" class="bg-[#1677FF] text-white min-w-[20px] h-5 grid place-items-center rounded-full text-[10px] px-1 font-black">0</span></button>
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <!-- NAVBAR SEARCH INPUT WITH SEARCH SUGGESTION DROPDOWN PANEL -->
+      <div id="navSearchContainer" class="relative hidden md:flex items-center gap-2 bg-white/5 rounded-full px-3.5 py-1.5 border border-white/10 focus-within:border-[#1677FF]/60 transition">
+        <i class="ri-search-line text-[#8491A7]"></i>
+        <input id="searchInput" placeholder="Search movies..." autocomplete="off" class="bg-transparent outline-none text-xs font-medium w-[150px] xl:w-[180px] text-white placeholder:text-[#8491A7]">
+        
+        <!-- SEARCH SUGGESTIONS DROPDOWN PANEL -->
+        <div id="searchDropdown" class="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-[#0B1020]/95 glass border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] hidden flex-col gap-1 max-h-[360px] overflow-y-auto z-50">
+          <div id="searchDropdownList" class="flex flex-col gap-1"></div>
+        </div>
+      </div>
+
+      <!-- AUTHENTICATED NAVBAR VOICE MICROPHONE BUTTON (TAP TO TOGGLE) -->
+      <button id="voiceBtn" title="Voice Search (Tap to speak)" class="w-10 h-10 rounded-full bg-[#1677FF] text-white grid place-items-center hover:scale-105 hover:bg-[#3D8BFF] transition shadow-[0_4px_20px_rgba(22,119,255,0.4)]"><i class="ri-mic-line text-[18px]"></i></button>
+      <button id="navProfileBtn" data-view="profile" class="nav-btn hidden md:grid w-10 h-10 rounded-full bg-[#10182B] text-white place-items-center overflow-hidden border border-[#00A8E8]/40 hover:border-[#1677FF] transition">
+        <img id="navAvatarImg" src="" style="object-fit: contain;" class="w-full h-full p-0.5">
+      </button>
+      <button id="loginBtn" data-view="login" class="hidden md:inline-flex bg-[#1677FF] text-white px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-[#3D8BFF] hover:shadow-[0_0_20px_rgba(22,119,255,0.4)] transition">LOGIN</button>
+      <button id="mobileMenuBtn" class="lg:hidden w-10 h-10 rounded-full bg-white/10 text-white border border-white/10 grid place-items-center"><i class="ri-menu-line"></i></button>
+    </div>
+  </nav>
+</div>
+
+<!-- Mobile menu -->
+<div id="mobileMenu" class="fixed inset-0 z-40 bg-[#05070D]/95 backdrop-blur-2xl hidden flex-col pt-24 px-6 gap-2 text-white border-b border-white/10">
+  <button data-view="home" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">DISCOVER</button>
+  <button data-view="library" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">LIBRARY</button>
+  <button data-view="cart" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">CART</button>
+  <button data-view="profile" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">PROFILE</button>
+  <button data-view="login" class="mobile-link text-left py-4 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">LOGIN</button>
+</div>
+
+<!-- VOICE ASSISTANT PANEL (TAP TO TOGGLE) -->
+<div id="voicePanel" class="fixed bottom-6 right-6 z-40 w-[340px] max-w-[calc(100vw-24px)] bg-[#10182B] rounded-[28px] shadow-[0_25px_70px_rgba(0,0,0,0.9)] border border-white/15 p-6 hidden text-white">
+  <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 grid place-items-center"><i class="ri-customer-service-2-line"></i></div>
+      <div>
+        <div class="font-black text-sm leading-none text-white">CINE VOICE ASSIST</div>
+        <div class="text-[10px] font-bold tracking-widest text-[#00A8E8] mt-0.5">TAP TO SPEAK / STOP</div>
+      </div>
+    </div>
+    <button id="closeVoice" class="w-8 h-8 rounded-full bg-white/10 text-white grid place-items-center hover:bg-white/20 transition"><i class="ri-close-line"></i></button>
+  </div>
+  <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+    <div class="text-xs font-bold tracking-widest text-[#8491A7] mb-2">VOICE COMMAND EXAMPLES</div>
+    <div class="flex flex-wrap gap-2">
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Find Dune”</button>
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Show action movies”</button>
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Open cart”</button>
+    </div>
+  </div>
+  <div id="waveArea" class="h-[72px] bg-[#05070D] rounded-2xl flex items-center justify-center gap-1.5 relative overflow-hidden border border-white/10">
+    <div class="wave flex items-end gap-1.5 h-8 opacity-30" id="waveAnim">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div id="listeningLabel" class="absolute inset-0 grid place-items-center text-[#00A8E8] font-black tracking-widest text-xs hidden">LISTENING... TAP AGAIN TO FINISH</div>
+    <div id="idleLabel" class="absolute inset-0 grid place-items-center text-white/60 font-bold tracking-widest text-[11px]">TAP MICROPHONE TO SPEAK</div>
+  </div>
+  <button id="micAction" class="mt-4 w-full bg-[#1677FF] text-white font-black py-3 rounded-full flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition shadow-[0_0_20px_rgba(22,119,255,0.3)]"><span class="w-2.5 h-2.5 bg-[#00A8E8] rounded-full animate-pulse"></span> TAP TO SPEAK / STOP</button>
+</div>
+
+<!-- MAIN CONTENT CONTAINER (DYNAMIC TOP PADDING DEDICATED TO PREVENT NAVBAR OVERLAP) -->
+<main id="mainContainer" class="pt-6 sm:pt-10 transition-all duration-300">
+
+<!-- LOGIN VIEW (DEFAULT INITIAL HTML PAGE - NO NAVBAR) -->
+<div id="view-login" class="view max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden grid lg:grid-cols-2 min-h-[600px] mt-2 relative shadow-2xl">
+    <div class="absolute inset-0 pointer-events-none opacity-25" style="background:radial-gradient(700px 500px at 10% 20%, rgba(22,119,255,0.3) 0%, transparent 55%), radial-gradient(600px 400px at 90% 80%, rgba(0,168,232,0.2) 0%, transparent 60%)"></div>
+    
+    <!-- LEFT SIDE: CINEVERSE BRANDING & VALUE PROPOSITION -->
+    <div class="relative p-8 sm:p-12 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-xl shadow-[0_0_20px_rgba(22,119,255,0.5)]">◐</div>
+          <span class="font-black text-2xl tracking-tighter text-white">CINEVERSE</span>
+        </div>
+        <h2 class="text-white text-5xl sm:text-6xl font-black tracking-tighter leading-[0.9] mt-8">
+          OWN YOUR<br>
+          <span class="text-[#00A8E8]">CINEMA.</span><br>
+          FOREVER.
+        </h2>
+        <p class="text-[#C7D0E0] text-sm leading-6 font-medium mt-6 max-w-[420px]">
+          Discover movies, purchase permanent digital licenses, rent titles, and manage your private movie vault. No monthly subscriptions. Always yours in 4K HDR.
+        </p>
+        <div class="mt-8 space-y-3 max-w-[400px]">
+          <div class="flex items-center gap-3 text-xs font-bold text-white/90 bg-white/5 border border-white/10 p-3.5 rounded-2xl">
+            <i class="ri-shield-check-line text-lg text-[#00A8E8]"></i> Permanent 4K HDR Digital Licenses
+          </div>
+          <div class="flex items-center gap-3 text-xs font-bold text-white/90 bg-white/5 border border-white/10 p-3.5 rounded-2xl">
+            <i class="ri-time-line text-lg text-[#1677FF]"></i> Flexible 48-Hour Rental Options
+          </div>
+          <div class="flex items-center gap-3 text-xs font-bold text-white/90 bg-white/5 border border-white/10 p-3.5 rounded-2xl">
+            <i class="ri-external-link-line text-lg text-[#00A8E8]"></i> Live TMDB Catalog & External Watch Providers
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-[#8491A7] text-[11px] font-bold tracking-widest mt-10">
+        <span class="w-8 h-px bg-white/20"></span> CINEVERSE DIGITAL LICENSE PLATFORM
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE: CINEVERSE AUTHENTICATION FORM -->
+    <div class="relative bg-[#10182B] p-8 sm:p-12 flex flex-col justify-center text-white">
+      <h3 id="authTitle" class="font-black text-3xl tracking-tighter text-white">Sign in to CineVerse</h3>
+      <p id="authSubtitle" class="text-sm text-[#8491A7] font-medium mt-1">Enter your details to access your private movie vault.</p>
+      
+      <form id="loginForm" class="mt-8 space-y-4">
+        <div id="nameField" class="hidden">
+          <label class="text-[11px] font-black tracking-widest text-[#C7D0E0]">FULL NAME</label>
+          <div class="mt-2 relative">
+            <i class="ri-user-line absolute left-4 top-1/2 -translate-y-1/2 text-[#8491A7]"></i>
+            <input id="nameInput" type="text" placeholder="Chinthan" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-3.5 text-sm font-medium text-white outline-none focus:border-[#1677FF] focus:bg-white/10 transition placeholder:text-white/30">
+          </div>
+          <p id="nameError" class="text-xs font-bold text-red-400 mt-1 hidden">Please enter your name.</p>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-black tracking-widest text-[#C7D0E0]">EMAIL ADDRESS</label>
+          <div class="mt-2 relative">
+            <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-[#8491A7]"></i>
+            <input id="emailInput" type="email" placeholder="you@studio.com" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-3.5 text-sm font-medium text-white outline-none focus:border-[#1677FF] focus:bg-white/10 transition placeholder:text-white/30" required>
+          </div>
+          <p id="emailError" class="text-xs font-bold text-red-400 mt-1 hidden">Enter a valid email address.</p>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-black tracking-widest text-[#C7D0E0]">PASSWORD</label>
+          <div class="mt-2 relative">
+            <i class="ri-lock-2-line absolute left-4 top-1/2 -translate-y-1/2 text-[#8491A7]"></i>
+            <input id="passwordInput" type="password" placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-11 py-3.5 text-sm font-medium text-white outline-none focus:border-[#1677FF] focus:bg-white/10 transition placeholder:text-white/30" required>
+            <button type="button" id="togglePass" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 text-white border border-white/10 grid place-items-center hover:bg-white/20 transition"><i class="ri-eye-line"></i></button>
+          </div>
+          <p id="passError" class="text-xs font-bold text-red-400 mt-1 hidden">Password must be at least 6 characters.</p>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" class="accent-[#1677FF] w-4 h-4">
+            <span class="text-xs font-bold text-[#C7D0E0]">Remember session</span>
+          </label>
+          <a href="#" onclick="showToast('Password reset link sent to registered email'); return false;" class="text-xs font-black underline decoration-2 underline-offset-4 text-[#00A8E8]">FORGOT PASSWORD?</a>
+        </div>
+
+        <button id="authSubmitBtn" type="submit" class="w-full bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest text-sm hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition flex items-center justify-center gap-2">SIGN IN <i class="ri-arrow-right-line"></i></button>
+
+        <p class="text-center text-xs font-medium text-[#8491A7] pt-3">
+          <span id="authToggleLabel">No account?</span> <a href="#" id="toggleAuthMode" class="font-black text-[#00A8E8] underline">Create one — start owning.</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- HOME VIEW (HIDDEN BY DEFAULT UNTIL AUTHENTICATED) -->
+<div id="view-home" class="view hidden">
+  <!-- HERO -->
+  <section class="max-w-[1280px] mx-auto px-4 lg:px-4">
+    <div class="bg-[#0B1020] rounded-[32px] lg:rounded-[40px] border border-white/10 overflow-hidden relative shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+      <div class="grid lg:grid-cols-12 gap-0">
+        <!-- Left -->
+        <div class="lg:col-span-7 p-7 sm:p-10 lg:p-12 pb-8 relative">
+          <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 py-1.5 mb-6">
+            <span class="w-2 h-2 rounded-full bg-[#00A8E8] animate-pulse"></span>
+            <span class="text-[10px] font-black tracking-[0.14em] text-white/90">DIGITAL MOVIE VAULT • PERMANENT OWNERSHIP</span>
+          </div>
+          <h1 class="hero-title">
+            <span class="block text-white">OWN YOUR</span>
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-white via-[#C7D0E0] to-[#00A8E8]">CINEMA.</span>
+            <span class="block text-white">FOREVER.</span>
+          </h1>
+          <p class="mt-5 text-[15px] leading-6 text-[#C7D0E0] max-w-[520px] font-medium">Discover films from TMDB, purchase permanent licenses, or rent titles for 48 hours. Always in 4K HDR in your private collection.</p>
+          <div class="flex flex-wrap gap-3 mt-8">
+            <button id="ctaExplore" class="bg-[#1677FF] text-white px-7 py-4 rounded-full font-black text-xs tracking-[0.14em] flex items-center gap-3 hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition">EXPLORE COLLECTION <span class="w-7 h-7 rounded-full bg-white text-[#1677FF] grid place-items-center"><i class="ri-arrow-right-line"></i></span></button>
+            <button id="showreelBtn" class="px-6 py-4 rounded-full font-black text-xs tracking-[0.14em] border border-white/15 bg-white/5 text-white hover:bg-white/10 transition flex items-center gap-2"><i class="ri-play-circle-line text-lg text-[#00A8E8]"></i> CATALOG HIGHLIGHTS</button>
+          </div>
+          <div class="grid grid-cols-3 gap-6 mt-10 border-t border-white/10 pt-7 max-w-[520px]">
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-white">4K HDR</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">DOLBY ATMOS</div>
+            </div>
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-[#00A8E8]">TMDB</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">METADATA CATALOG</div>
+            </div>
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-[#1677FF]">∞</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">FOREVER ACCESS</div>
+            </div>
+          </div>
+        </div>
+        <!-- Right Dynamic TMDB Hero Artwork Collection Stack (3-Card Rotation Stack) -->
+        <div class="lg:col-span-5 bg-[#05070D] relative min-h-[480px] lg:min-h-[580px] overflow-hidden p-6 lg:p-8 border-l border-white/5 flex flex-col items-center justify-center">
+          <div class="absolute top-6 right-6 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3.5 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(22,119,255,0.4)] z-20"><span class="w-2 h-2 bg-[#00A8E8] rounded-full animate-pulse"></span> TMDB COLLECTION</div>
+          <div id="heroPosterStack" class="relative z-10 w-full max-w-[340px] flex items-center justify-center gap-3">
+            <!-- Dynamic TMDB Carousel Cards inserted cleanly by JS -->
+          </div>
+        </div>
+      </div>
+      <!-- marquee -->
+      <div class="bg-[#10182B] border-t border-white/10 py-2.5 overflow-hidden text-[#00A8E8]">
+        <div class="flex whitespace-nowrap marquee">
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTER / GENRES -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-8">
+    <div class="flex flex-wrap items-center gap-3 justify-between">
+      <div class="flex items-center gap-2 overflow-auto no-scrollbar py-1">
+        <button data-genre="All" class="genre-btn active bg-[#1677FF] text-white px-5 py-2.5 rounded-full text-xs font-black tracking-widest shadow-[0_4px_16px_rgba(22,119,255,0.3)]">ALL</button>
+        <button data-genre="Sci-Fi" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">SCI-FI</button>
+        <button data-genre="Action" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">ACTION</button>
+        <button data-genre="Drama" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">DRAMA</button>
+        <button data-genre="Animation" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">ANIMATION</button>
+        <button data-genre="Crime" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">CRIME</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold text-[#8491A7] hidden sm:inline">SORT BY</span>
+        <select id="sortSelect" class="bg-[#10182B] text-white border border-white/10 rounded-full px-4 py-2 text-xs font-bold outline-none">
+          <option value="featured">FEATURED</option>
+          <option value="rating">RATING</option>
+          <option value="price-low">PRICE: LOW TO HIGH</option>
+          <option value="price-high">PRICE: HIGH TO LOW</option>
+          <option value="year">YEAR</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED / TRENDING ROW -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-white">TMDB FEATURED TITLES</h2>
+        <p class="text-xs font-medium text-[#8491A7] mt-0.5">Popular movies available for purchase or rental</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="scrollLeft" class="w-9 h-9 rounded-full bg-[#10182B] text-white border border-white/10 grid place-items-center hover:bg-white/10 transition"><i class="ri-arrow-left-s-line"></i></button>
+        <button id="scrollRight" class="w-9 h-9 rounded-full bg-[#10182B] text-white border border-white/10 grid place-items-center hover:bg-white/10 transition"><i class="ri-arrow-right-s-line"></i></button>
+      </div>
+    </div>
+    <div id="featuredRow" class="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar snap-x py-2"></div>
+  </section>
+
+  <!-- MAIN CATALOG GRID -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-12 mb-16">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-white">BROWSE MOVIE CATALOG</h2>
+    </div>
+    <div id="movieGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6"></div>
+  </section>
+</div>
+
+<!-- SEPARATE MOVIE DETAILS PAGE VIEW (NAVIGATED FROM SEARCH SUGGESTIONS OR DEEP LINK) -->
+<div id="view-movie-detail" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="mb-6">
+    <button onclick="navigate('home')" class="bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black tracking-widest px-5 py-2.5 rounded-full inline-flex items-center gap-2 transition">
+      <i class="ri-arrow-left-line text-sm text-[#00A8E8]"></i> BACK TO DISCOVER
+    </button>
+  </div>
+  <div id="movieDetailPageContent" class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden shadow-2xl text-white">
+    <!-- Content rendered dynamically by openMovieDetailsPage(movieId) -->
+  </div>
+</div>
+
+<!-- LIBRARY VIEW -->
+<div id="view-library" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 p-6 sm:p-8 mt-2 text-white shadow-2xl">
+    <div class="flex flex-wrap items-start justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 bg-[#1677FF]/15 border border-[#00A8E8]/30 text-[#00A8E8] px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest mb-3"><span class="w-2 h-2 bg-[#00A8E8] rounded-full"></span> YOUR PRIVATE MOVIE VAULT</div>
+        <h2 class="text-4xl sm:text-5xl font-black tracking-tighter text-white">LIBRARY</h2>
+        <p class="text-sm text-[#C7D0E0] font-medium mt-2">Digital movie licenses you own or rent. View external watch provider options.</p>
+      </div>
+      <div class="flex gap-3 w-full sm:w-auto">
+        <div class="flex-1 sm:flex-none bg-[#10182B] rounded-full px-4 py-3 flex items-center gap-2 border border-white/10">
+          <i class="ri-search-line text-[#8491A7]"></i>
+          <input id="librarySearch" placeholder="Search library..." class="bg-transparent outline-none text-sm font-medium w-full sm:w-[180px] text-white placeholder:text-[#8491A7]">
+        </div>
+        <select id="libraryFilter" class="bg-[#10182B] text-white rounded-full px-5 py-3 text-xs font-black tracking-widest border border-white/10 outline-none">
+          <option value="RECENTLY ADDED">RECENTLY ADDED</option>
+          <option value="A-Z">A-Z</option>
+          <option value="YEAR">YEAR</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">OWNED LICENSES</div>
+        <div id="statOwned" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        <div class="text-xs font-medium text-[#8491A7]">Permanent licenses</div>
+      </div>
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">ACTIVE RENTALS</div>
+        <div id="statLicenses" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        <div class="text-xs font-medium text-[#8491A7]">48-Hour rentals</div>
+      </div>
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">TOTAL SPENT</div>
+        <div id="statSpent" class="text-3xl font-black tracking-tighter mt-1 text-white">₹0.00</div>
+        <div class="text-xs font-medium text-[#8491A7]">Vault investments</div>
+      </div>
+    </div>
+    <div id="libraryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"></div>
+    <div id="libraryEmpty" class="text-center py-20">
+      <div class="w-20 h-20 rounded-full bg-[#10182B] border border-white/10 grid place-items-center mx-auto text-3xl text-[#1677FF]">◐</div>
+      <h3 class="font-black text-xl tracking-tighter mt-4 text-white">Your vault is empty</h3>
+      <p class="text-sm text-[#8491A7] max-w-[420px] mx-auto mt-2 font-medium">When you purchase or rent movies they will appear here. Start building your digital collection.</p>
+      <button data-view="home" class="nav-btn mt-6 bg-[#1677FF] text-white px-7 py-3 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">DISCOVER FILMS</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART VIEW -->
+<div id="view-cart" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="grid lg:grid-cols-12 gap-6 mt-2">
+    <div class="lg:col-span-8 bg-[#0B1020] rounded-[32px] border border-white/10 p-6 sm:p-8 text-white shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-white">YOUR CART</h2>
+        <span id="cartCountLabel" class="bg-[#10182B] border border-white/10 px-3.5 py-1.5 rounded-full text-xs font-black text-[#00A8E8]">0 ITEMS</span>
+      </div>
+      <p class="text-sm text-[#C7D0E0] font-medium mt-2">Digital movie licenses (Permanent purchase or 48-Hour rental).</p>
+      <div id="cartList" class="mt-8 space-y-4"></div>
+      <div id="cartEmpty" class="text-center py-16">
+        <div class="w-16 h-16 rounded-full bg-[#10182B] border border-white/10 grid place-items-center mx-auto text-2xl text-[#1677FF]"><i class="ri-shopping-bag-line"></i></div>
+        <h3 class="font-black text-lg mt-4 text-white">Cart is empty</h3>
+        <p class="text-sm text-[#8491A7] font-medium">Add movies you love to your cart.</p>
+        <button data-view="home" class="nav-btn mt-6 bg-[#1677FF] text-white px-6 py-3 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">BROWSE STORE</button>
+      </div>
+      <div class="mt-6 flex items-center gap-2 text-xs font-bold text-[#8491A7]"><i class="ri-shield-check-line text-[#00A8E8]"></i> Secure CineVerse checkout • Instant digital activation</div>
+    </div>
+    <div class="lg:col-span-4">
+      <div class="bg-[#10182B] border border-white/10 rounded-[32px] p-6 sm:p-7 text-white sticky top-[88px] shadow-2xl">
+        <h3 class="font-black text-xl tracking-tighter">ORDER SUMMARY</h3>
+        <div class="mt-6 space-y-3 text-sm">
+          <div class="flex justify-between font-medium text-[#C7D0E0]"><span>Subtotal</span><span id="sumSubtotal" class="text-white font-black">₹0.00</span></div>
+          <div class="flex justify-between font-medium text-[#C7D0E0]"><span>Tax (8%)</span><span id="sumTax" class="text-white font-black">₹0.00</span></div>
+          <div class="h-px bg-white/10 my-4"></div>
+          <div class="flex justify-between items-center"><span class="font-black tracking-widest text-xs">TOTAL</span><span id="sumTotal" class="text-3xl font-black tracking-tighter text-[#00A8E8]">₹0.00</span></div>
+        </div>
+        <div class="mt-5 space-y-2">
+          <label class="block text-[11px] font-black tracking-widest text-[#8491A7]">PAYMENT METHOD</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer text-xs font-bold">
+              <input type="radio" name="payMethod" value="COD" checked class="accent-[#1677FF]"> Cash / COD
+            </label>
+            <label class="flex items-center gap-2 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer text-xs font-bold">
+              <input type="radio" name="payMethod" value="UPI" class="accent-[#1677FF]"> Razorpay UPI
+            </label>
+          </div>
+        </div>
+        <button id="checkoutBtn" class="mt-6 w-full bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest text-sm hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition flex items-center justify-center gap-2">PURCHASE & OWN <i class="ri-lock-2-line"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE VIEW (UNCROPPED UNIVERSAL USER SILHOUETTE AVATAR & FULL VISIBILITY) -->
+<div id="view-profile" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden mt-2 text-white shadow-2xl">
+    <div class="h-44 sm:h-52 bg-[#05070D] relative p-6 flex items-end">
+      <div class="flex items-center gap-5 z-10">
+        <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#00A8E8] bg-[#10182B] p-1 shadow-2xl overflow-hidden shrink-0">
+          <img id="profileAvatar" src="" style="object-fit: contain;" class="w-full h-full rounded-full">
+        </div>
+        <div>
+          <h2 id="profileName" class="text-white font-black text-2xl sm:text-3xl tracking-tighter">USER ACCOUNT</h2>
+          <p id="profileSub" class="text-[#8491A7] text-xs font-bold tracking-widest mt-1">MEMBER SINCE 2026</p>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 sm:p-8 pt-8">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">FILMS OWNED</div>
+          <div id="profileOwned" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">ACTIVE RENTALS</div>
+          <div id="profileLicenses" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10 col-span-2 sm:col-span-1">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">LIFETIME SPENT</div>
+          <div id="profileSpent" class="text-3xl font-black tracking-tighter mt-1 text-white">₹0.00</div>
+        </div>
+      </div>
+
+      <div class="mt-8">
+        <h3 class="font-black tracking-tighter text-xl text-white">ORDER & LICENSE HISTORY</h3>
+        <div id="purchaseHistory" class="mt-4 space-y-3"></div>
+        <div id="noHistory" class="bg-[#10182B] border border-dashed border-white/10 rounded-2xl p-8 text-center mt-4">
+          <div class="text-sm font-bold text-[#8491A7]">No order history yet. Your transactions will appear here.</div>
+        </div>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-white/10 flex justify-end">
+        <button id="logoutBtn" class="bg-red-500/20 text-red-400 border border-red-500/30 px-6 py-3 rounded-full font-black text-xs tracking-widest hover:bg-red-500 hover:text-white transition">LOG OUT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- MOVIE DETAILS MODAL -->
+<div id="movieModal" class="fixed inset-0 z-[100000] flex items-center justify-center p-4 hidden">
+  <div id="modalBackdrop" class="absolute inset-0 bg-[#05070D]/90 backdrop-blur-md"></div>
+  <div class="relative w-full max-w-4xl bg-[#0B1020] rounded-[32px] border border-white/15 overflow-hidden shadow-2xl text-white z-10 max-h-[90vh] overflow-y-auto">
+    <button id="closeModal" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 text-white border border-white/20 grid place-items-center hover:bg-white hover:text-black transition"><i class="ri-close-line text-xl"></i></button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer id="footer" class="mt-16 bg-[#0B1020] text-white border-t border-white/10 py-10 px-6 text-center text-xs font-bold text-[#8491A7]">
+  <div class="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-xs">◐</div>
+      <span class="font-black tracking-tighter text-white text-sm">CINEVERSE</span>
+    </div>
+    <div>CineVerse Digital License Platform • Powered by TMDB Metadata API</div>
+    <div>© 2026 CineVerse Inc. All rights reserved.</div>
+  </div>
+</footer>
+
+<script>
+const API_BASE_URL = "http://127.0.0.1:8000";
+
+let movies = [];
+let cart = [];
+let library = [];
+let userOrders = [];
+let favorites = new Set(JSON.parse(localStorage.getItem('cv_favs') || '[]'));
+let activeGenre = 'All';
+let sortBy = 'featured';
+let heroCarouselIndex = 0;
+
+let currentUser = JSON.parse(localStorage.getItem('cv_user') || 'null');
+let isLoggedIn = Boolean(currentUser && localStorage.getItem('cv_logged') === '1');
+let authMode = 'login'; // 'login' or 'signup'
+
+let sessionId = localStorage.getItem('cv_session_id');
+if (!sessionId) {
+  sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+  localStorage.setItem('cv_session_id', sessionId);
+}
+
+function save() {
+  localStorage.setItem('cv_favs', JSON.stringify([...favorites]));
+  localStorage.setItem('cv_logged', isLoggedIn ? '1' : '0');
+  if (currentUser) {
+    localStorage.setItem('cv_user', JSON.stringify(currentUser));
+  } else {
+    localStorage.removeItem('cv_user');
+  }
+}
+
+function formatPrice(p) {
+  const val = typeof p === 'number' ? p : parseFloat(p || 0);
+  return '₹' + val.toFixed(2);
+}
+
+// UNIVERSAL USER SILHOUETTE AVATAR (Vector SVG matching user reference outline)
+function getInitialsAvatar(name) {
+  const userSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+    <rect width="120" height="120" fill="%2310182b" rx="60"/>
+    <circle cx="60" cy="42" r="22" fill="none" stroke="%2300a8e8" stroke-width="6"/>
+    <path d="M 22 100 C 22 70, 38 64, 60 64 C 82 64, 98 70, 98 100" fill="none" stroke="%2300a8e8" stroke-width="6" stroke-linecap="round"/>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(userSvg)}`;
+}
+
+// CLEAN SVG NEUTRAL PLACEHOLDER (URI Encoded to prevent double-quote HTML leakage)
+function getNeutralPlaceholder(title) {
+  const encodedTitle = (title || 'CineVerse Film').replace(/[^a-zA-Z0-9 ]/g, '');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+    <rect width="400" height="600" fill="%230b1020"/>
+    <rect x="20" y="20" width="360" height="560" rx="16" fill="%2310182b" stroke="%231677ff" stroke-width="2" stroke-opacity="0.3"/>
+    <circle cx="200" cy="240" r="48" fill="%231677ff" fill-opacity="0.2"/>
+    <text x="200" y="250" font-family="sans-serif" font-size="40" font-weight="900" fill="%2300a8e8" text-anchor="middle">◐</text>
+    <text x="200" y="340" font-family="sans-serif" font-size="20" font-weight="800" fill="%23ffffff" text-anchor="middle">${encodedTitle}</text>
+    <text x="200" y="380" font-family="sans-serif" font-size="12" font-weight="700" fill="%238491a7" text-anchor="middle">CINEVERSE 4K HDR</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+function resolvePoster(imgStr, title) {
+  if (!imgStr || imgStr === 'null' || imgStr === 'undefined') return getNeutralPlaceholder(title);
+  if (imgStr.startsWith('http://') || imgStr.startsWith('https://') || imgStr.startsWith('data:')) {
+    return imgStr;
+  }
+  if (imgStr.startsWith('/')) {
+    return `https://image.tmdb.org/t/p/w500${imgStr}`;
+  }
+  return `${API_BASE_URL}/static/images/${imgStr}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.remove('hidden');
+  t.classList.add('flex');
+  setTimeout(() => {
+    t.classList.add('hidden');
+    t.classList.remove('flex');
+  }, 2500);
+}
+
+function movieCard(m) {
+  const isFav = favorites.has(m.id);
+  const inCart = cart.some(c => c.id === m.id);
+  const owned = library.some(l => l.id === m.id);
+  const placeholder = getNeutralPlaceholder(m.title);
+
+  return `<div class="movie-card group bg-[#10182B] rounded-[24px] overflow-hidden border border-white/10 hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)] hover:border-[#1677FF]/50 transition duration-500 cursor-pointer flex flex-col" data-id="${m.id}">
+    <div class="relative aspect-[2/3] overflow-hidden bg-[#05070D]">
+      <img src="${m.poster}" alt="${m.title}" loading="lazy" onerror="this.onerror=null; this.src='${placeholder}';" class="w-full h-full object-cover group-hover:scale-[1.06] transition duration-[700ms]">
+      <div class="absolute inset-0 bg-gradient-to-t from-[#05070D]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+      <div class="absolute top-3 left-3 flex items-center gap-1.5">
+        <span class="bg-black/70 backdrop-blur border border-white/10 text-white text-[10px] font-black px-2.5 py-1 rounded-full">${m.year || 2024}</span>
+        <span class="bg-[#1677FF] text-white text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1"><i class="ri-star-fill text-[11px]"></i> ${m.rating}</span>
+      </div>
+      <button class="fav-btn absolute top-3 right-3 w-8 h-8 rounded-full ${isFav ? 'bg-[#1677FF] text-white' : 'bg-black/60 text-white/80 backdrop-blur border border-white/10'} grid place-items-center hover:scale-110 transition" data-fav="${m.id}"><i class="${isFav ? 'ri-heart-3-fill' : 'ri-heart-3-line'}"></i></button>
+      <div class="absolute bottom-3 left-3 right-3 flex gap-2 translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition duration-300">
+        <button class="details-btn flex-1 bg-white/10 backdrop-blur border border-white/15 text-white text-[11px] font-black tracking-widest py-2.5 rounded-full hover:bg-white hover:text-black transition">DETAILS</button>
+        ${owned ? `<span class="flex-1 bg-[#10182B] text-[#00A8E8] border border-[#00A8E8]/30 text-[11px] font-black tracking-widest py-2.5 rounded-full grid place-items-center">OWNED ✓</span>` : `<button class="cart-btn flex-1 ${inCart ? 'bg-white/20 text-white' : 'bg-[#1677FF] text-white'} text-[11px] font-black tracking-widest py-2.5 rounded-full hover:bg-[#3D8BFF] transition">${inCart ? 'IN CART' : ' + CART'}</button>`}
+      </div>
+      ${m.trending ? `<div class="absolute left-3 bottom-3 group-hover:opacity-0 transition bg-[#05070D]/90 border border-white/10 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 bg-[#00A8E8] rounded-full animate-pulse"></span> TMDB TOP</div>` : ''}
+    </div>
+    <div class="p-4 flex-1 flex flex-col">
+      <div class="font-black text-[13px] leading-tight tracking-tight line-clamp-1 text-white">${m.title}</div>
+      <div class="text-[11px] font-bold tracking-wide text-[#8491A7] mt-1">${m.genre} • Rent ${formatPrice(m.rental_price)}</div>
+      <div class="flex items-center justify-between mt-3">
+        <span class="font-black text-[16px] tracking-tighter text-white">${formatPrice(m.price)}</span>
+        <span class="text-[10px] font-black tracking-[0.12em] bg-[#1677FF]/15 text-[#00A8E8] border border-[#00A8E8]/30 px-3 py-1 rounded-full">${owned ? 'OWNED' : 'BUY / RENT'}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function getFiltered() {
+  let list = [...movies];
+  if (activeGenre !== 'All') {
+    list = list.filter(m => m.genre.toLowerCase() === activeGenre.toLowerCase());
+  }
+  if (sortBy === 'price-low') list.sort((a, b) => a.price - b.price);
+  if (sortBy === 'price-high') list.sort((a, b) => b.price - a.price);
+  if (sortBy === 'rating') list.sort((a, b) => b.rating - a.rating);
+  if (sortBy === 'year') list.sort((a, b) => (b.year || 2024) - (a.year || 2024));
+  return list;
+}
+
+// DYNAMIC TMDB HERO COLLECTION ROTATION (3-CARD COLLECTION WITH SAFE URI-ENCODED POSTERS)
+function renderHeroCollection() {
+  if (!movies || movies.length === 0) return;
+  const container = document.getElementById('heroPosterStack');
+  if (!container) return;
+
+  const total = movies.length;
+  const m1 = movies[heroCarouselIndex % total];
+  const m2 = movies[(heroCarouselIndex + 1) % total];
+  const m3 = movies[(heroCarouselIndex + 2) % total];
+
+  const p1 = resolvePoster(m1.poster, m1.title);
+  const p2 = resolvePoster(m2.poster, m2.title);
+  const p3 = resolvePoster(m3.poster, m3.title);
+
+  const ph1 = getNeutralPlaceholder(m1.title);
+  const ph2 = getNeutralPlaceholder(m2.title);
+  const ph3 = getNeutralPlaceholder(m3.title);
+
+  container.innerHTML = `
+    <div class="hidden sm:block w-[105px] shrink-0 rounded-2xl overflow-hidden border border-white/15 bg-[#10182B] shadow-lg rotate-[-6deg] translate-y-3 transition duration-700">
+      <img src="${p1}" onerror="this.onerror=null; this.src='${ph1}';" class="w-full h-[155px] object-cover">
+      <div class="p-2 text-[10px] font-black text-white truncate bg-[#10182B]">${m1.title}</div>
+    </div>
+    <div class="w-[175px] shrink-0 rounded-2xl overflow-hidden border-2 border-[#1677FF] bg-[#10182B] shadow-2xl z-10 transition duration-700">
+      <img src="${p2}" onerror="this.onerror=null; this.src='${ph2}';" class="w-full h-[235px] object-cover">
+      <div class="p-3 bg-[#10182B] border-t border-white/10 flex items-center justify-between">
+        <div class="truncate max-w-[100px]">
+          <div class="font-black text-xs text-white truncate">${m2.title}</div>
+          <div class="text-[9px] font-bold text-[#8491A7]">${m2.genre}</div>
+        </div>
+        <span class="bg-[#1677FF] text-white text-[10px] font-black px-2 py-0.5 rounded-full">★ ${m2.rating}</span>
+      </div>
+    </div>
+    <div class="hidden sm:block w-[105px] shrink-0 rounded-2xl overflow-hidden border border-white/15 bg-[#10182B] shadow-lg rotate-[6deg] translate-y-3 transition duration-700">
+      <img src="${p3}" onerror="this.onerror=null; this.src='${ph3}';" class="w-full h-[155px] object-cover">
+      <div class="p-2 text-[10px] font-black text-white truncate bg-[#10182B]">${m3.title}</div>
+    </div>
+  `;
+}
+
+function render() {
+  const filtered = getFiltered();
+  const featured = filtered.filter(m => m.featured);
+  const gridList = filtered;
+
+  const fRow = document.getElementById('featuredRow');
+  if (fRow) {
+    fRow.innerHTML = featured.map(m => `<div class="min-w-[220px] sm:min-w-[240px] snap-start">${movieCard(m)}</div>`).join('') || `<div class="text-sm font-bold text-[#8491A7] py-10">No films match your filters.</div>`;
+  }
+
+  const grid = document.getElementById('movieGrid');
+  if (grid) {
+    grid.innerHTML = gridList.map(m => movieCard(m)).join('') || `<div class="col-span-full text-center text-sm font-bold text-[#8491A7] py-10">No movies found in TMDB catalog.</div>`;
+  }
+
+  renderHeroCollection();
+  updateCounts();
+  attachCardEvents();
+}
+
+// Automatic rotation of TMDB Hero Collection every 6 seconds
+if (!window.heroTimer) {
+  window.heroTimer = setInterval(() => {
+    if (movies && movies.length > 0) {
+      heroCarouselIndex = (heroCarouselIndex + 1) % movies.length;
+      renderHeroCollection();
+    }
+  }, 6000);
+}
+
+function updateCounts() {
+  document.getElementById('cartBadge').textContent = cart.length;
+  document.getElementById('cartCountLabel').textContent = cart.length + ' ITEMS';
+  document.getElementById('libCount').textContent = library.length;
+  document.getElementById('libCount').classList.toggle('hidden', library.length === 0);
+
+  const statOwned = document.getElementById('statOwned');
+  if (statOwned) statOwned.textContent = library.length;
+
+  const statLicenses = document.getElementById('statLicenses');
+  if (statLicenses) statLicenses.textContent = library.length;
+
+  const profileOwned = document.getElementById('profileOwned');
+  if (profileOwned) profileOwned.textContent = library.length;
+
+  const profileLicenses = document.getElementById('profileLicenses');
+  if (profileLicenses) profileLicenses.textContent = library.length;
+
+  const spent = library.reduce((s, m) => s + (m.purchase_price || m.price || 0), 0);
+  const statSpent = document.getElementById('statSpent');
+  if (statSpent) statSpent.textContent = formatPrice(spent);
+
+  const profileSpent = document.getElementById('profileSpent');
+  if (profileSpent) profileSpent.textContent = formatPrice(spent);
+
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.placeholder = movies.length > 0 ? `Search ${movies.length} TMDB movies...` : "Search movies...";
+  }
+
+  const loginBtn = document.getElementById('loginBtn');
+  const navProfileBtn = document.getElementById('navProfileBtn');
+  const navAvatarImg = document.getElementById('navAvatarImg');
+
+  const avatarUrl = getInitialsAvatar();
+
+  if (isLoggedIn && currentUser) {
+    if (loginBtn) {
+      loginBtn.style.display = 'none';
+      loginBtn.classList.add('hidden');
+    }
+    if (navProfileBtn) {
+      navProfileBtn.style.display = 'grid';
+      navProfileBtn.classList.remove('hidden');
+    }
+    if (navAvatarImg) {
+      navAvatarImg.src = avatarUrl;
+      navAvatarImg.classList.remove('hidden');
+    }
+    const pName = document.getElementById('profileName');
+    if (pName) pName.textContent = currentUser.name.toUpperCase();
+
+    const pSub = document.getElementById('profileSub');
+    if (pSub) pSub.textContent = `MEMBER SINCE 2026 • ${currentUser.email.toUpperCase()}`;
+
+    const pAvatar = document.getElementById('profileAvatar');
+    if (pAvatar) pAvatar.src = avatarUrl;
+  } else {
+    if (loginBtn) {
+      loginBtn.style.display = 'inline-flex';
+      loginBtn.classList.remove('hidden');
+    }
+    if (navProfileBtn) {
+      navProfileBtn.style.display = 'none';
+      navProfileBtn.classList.add('hidden');
+    }
+
+    const pName = document.getElementById('profileName');
+    if (pName) pName.textContent = 'GUEST ACCOUNT';
+
+    const pSub = document.getElementById('profileSub');
+    if (pSub) pSub.textContent = 'NOT SIGNED IN — PLEASE SIGN IN TO ACCESS VAULT';
+
+    const pAvatar = document.getElementById('profileAvatar');
+    if (pAvatar) pAvatar.src = avatarUrl;
+  }
+
+  const subtotal = cart.reduce((s, m) => s + (m.selected_price || m.price), 0);
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
+
+  const sumSub = document.getElementById('sumSubtotal');
+  if (sumSub) sumSub.textContent = formatPrice(subtotal);
+
+  const sumTx = document.getElementById('sumTax');
+  if (sumTx) sumTx.textContent = formatPrice(tax);
+
+  const sumTot = document.getElementById('sumTotal');
+  if (sumTot) sumTot.textContent = formatPrice(total);
+
+  const hasCart = cart.length > 0;
+  const cartEmpty = document.getElementById('cartEmpty');
+  if (cartEmpty) cartEmpty.classList.toggle('hidden', hasCart);
+
+  const cartList = document.getElementById('cartList');
+  if (cartList) cartList.classList.toggle('hidden', !hasCart);
+
+  const hasLib = library.length > 0;
+  const libEmpty = document.getElementById('libraryEmpty');
+  if (libEmpty) libEmpty.classList.toggle('hidden', hasLib);
+
+  const libGrid = document.getElementById('libraryGrid');
+  if (libGrid) libGrid.classList.toggle('hidden', !hasLib);
+}
+
+function renderCartList() {
+  const el = document.getElementById('cartList');
+  if (cart.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = cart.map(m => {
+    const placeholder = getNeutralPlaceholder(m.title);
+    const isRental = m.license_type === 'rental';
+    const priceVal = m.selected_price || (isRental ? m.rental_price : m.price);
+    return `
+      <div class="flex gap-4 bg-[#10182B] rounded-2xl p-3.5 border border-white/10">
+        <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-20 h-28 rounded-xl object-cover shrink-0">
+        <div class="flex-1 min-w-0 py-1">
+          <div class="font-black text-sm leading-tight truncate text-white">${m.title}</div>
+          <div class="text-xs font-bold text-[#8491A7] mt-0.5">${m.year || 2024} • ${m.genre}</div>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 text-[10px] font-black px-2.5 py-1 rounded-full uppercase">${isRental ? '48-Hour Rental' : 'Permanent Buy'}</span>
+            <span class="bg-[#1677FF] text-white text-[10px] font-black px-2 py-1 rounded-full">★ ${m.rating}</span>
+          </div>
+          <div class="flex items-center justify-between mt-3">
+            <span class="font-black text-base text-white">${formatPrice(priceVal)}</span>
+            <button data-remove="${m.id}" class="text-xs font-black tracking-widest text-[#8491A7] hover:text-red-400 underline decoration-2 transition">REMOVE</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('[data-remove]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const remId = parseInt(b.dataset.remove);
+      cart = cart.filter(c => c.id !== remId);
+      await apiRemoveFromCart(remId);
+      updateCounts();
+      renderCartList();
+      showToast('Removed from cart');
+      render();
+    });
+  });
+}
+
+function renderLibrary() {
+  const grid = document.getElementById('libraryGrid');
+  const q = document.getElementById('librarySearch').value.toLowerCase();
+  let list = [...library];
+  if (q) list = list.filter(m => m.title.toLowerCase().includes(q));
+  const filter = document.getElementById('libraryFilter').value;
+  if (filter === 'A-Z') list.sort((a, b) => a.title.localeCompare(b.title));
+  if (filter === 'YEAR') list.sort((a, b) => (b.year || 2024) - (a.year || 2024));
+
+  grid.innerHTML = list.map(m => {
+    const placeholder = getNeutralPlaceholder(m.title);
+    const isRental = m.license_type === 'rental';
+    return `
+      <div class="bg-[#10182B] rounded-[24px] overflow-hidden border border-white/10 group">
+        <div class="relative aspect-[2/3] overflow-hidden">
+          <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-full h-full object-cover group-hover:scale-105 transition duration-700">
+          <div class="absolute inset-0 bg-gradient-to-t from-[#05070D]/80 to-transparent"></div>
+          <div class="absolute bottom-3 left-3 right-3">
+            <div class="h-1.5 bg-white/20 rounded-full overflow-hidden"><div class="h-full bg-[#1677FF] w-[100%]"></div></div>
+            <div class="text-[10px] font-black tracking-widest text-white mt-1.5">${isRental ? '48H RENTAL LICENSE' : 'PERMANENT LICENSE'}</div>
+          </div>
+          <div class="absolute top-3 left-3 bg-[#1677FF] text-white text-[10px] font-black px-2 py-1 rounded-full">${isRental ? 'RENTED' : 'OWNED'}</div>
+        </div>
+        <div class="p-4">
+          <div class="font-black text-sm leading-tight text-white">${m.title}</div>
+          <div class="text-xs font-medium text-[#8491A7] mt-0.5">${m.genre} • ${m.year || 2024}</div>
+          <button onclick="fetchWatchProviders('${m.tmdb_id || m.id}')" class="mt-3 w-full bg-[#1677FF] text-white py-2.5 rounded-full font-black text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition"><i class="ri-external-link-line"></i> WHERE TO WATCH</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const hist = document.getElementById('purchaseHistory');
+  const noHist = document.getElementById('noHistory');
+  if (userOrders.length === 0) {
+    hist.innerHTML = '';
+    noHist.classList.remove('hidden');
+  } else {
+    noHist.classList.add('hidden');
+    hist.innerHTML = userOrders.map((ord, i) => {
+      const items = ord.items || [];
+      const itemNames = items.map(it => it.name || it.title).join(', ') || 'Movie License';
+      const dateStr = ord.order_date ? new Date(ord.order_date).toLocaleDateString() : new Date(Date.now() - i * 86400000).toLocaleDateString();
+      return `
+        <div class="flex items-center gap-4 bg-[#10182B] rounded-2xl p-4 border border-white/10 text-white">
+          <div class="w-10 h-10 rounded-xl bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 grid place-items-center font-black text-xs shrink-0"><i class="ri-file-text-line text-lg"></i></div>
+          <div class="flex-1 min-w-0">
+            <div class="font-black text-sm text-white truncate">${itemNames}</div>
+            <div class="text-xs font-medium text-[#8491A7]">Order ${ord.order_id || ord.id} • ${dateStr} • ${ord.payment_method || 'COD'}</div>
+          </div>
+          <div class="text-right">
+            <div class="font-black text-sm text-[#00A8E8]">${formatPrice(ord.total_amount || 0)}</div>
+            <span class="inline-block bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full text-[10px] font-black text-white/80 uppercase">${ord.order_status || 'placed'}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+async function fetchWatchProviders(tmdbId) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/watch-providers/${tmdbId}/`);
+    const data = await res.json();
+    if (res.ok && data.available && data.providers && data.providers.length > 0) {
+      showToast('Available on: ' + data.providers.join(', '));
+    } else {
+      showToast(data.message || 'Watch provider information is unavailable for this title.');
+    }
+  } catch (e) {
+    showToast('Watch provider information unavailable for this title.');
+  }
+}
+
+function attachCardEvents() {
+  document.querySelectorAll('.movie-card').forEach(card => {
+    const id = parseInt(card.dataset.id);
+    const m = movies.find(x => x.id === id);
+    if (!m) return;
+    card.querySelector('.details-btn')?.addEventListener('click', (e) => { e.stopPropagation(); openModal(m); });
+    card.querySelector('.cart-btn')?.addEventListener('click', (e) => { e.stopPropagation(); addToCart(m, 'purchase'); });
+    card.querySelector('.fav-btn')?.addEventListener('click', (e) => { e.stopPropagation(); toggleFav(id); });
+    card.addEventListener('click', () => openModal(m));
+
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left, y = e.clientY - rect.top;
+      const rx = (y / rect.height - 0.5) * -6, ry = (x / rect.width - 0.5) * 6;
+      card.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
+    });
+    card.addEventListener('mouseleave', () => card.style.transform = '');
+  });
+}
+
+async function addToCart(m, licenseType = 'purchase') {
+  if (library.some(l => l.id === m.id)) { showToast('License already owned ✓'); return; }
+  if (cart.some(c => c.id === m.id)) { showToast('Already in cart'); return; }
+  const cartItem = {
+    ...m,
+    license_type: licenseType,
+    selected_price: licenseType === 'rental' ? m.rental_price : m.price
+  };
+  cart.push(cartItem);
+  await apiAddToCart(m);
+  updateCounts();
+  renderCartList();
+  render();
+  showToast(`Added ${licenseType === 'rental' ? 'Rental' : 'Purchase'} to cart — ${m.title}`);
+}
+
+function toggleFav(id) {
+  if (favorites.has(id)) favorites.delete(id); else favorites.add(id);
+  save();
+  render();
+  renderLibrary();
+  showToast(favorites.has(id) ? 'Saved to favorites ♥' : 'Removed from favorites');
+}
+
+function openModal(m) {
+  const modal = document.getElementById('movieModal');
+  const content = document.getElementById('modalContent');
+  const isOwned = library.some(l => l.id === m.id);
+  const placeholder = getNeutralPlaceholder(m.title);
+
+  content.innerHTML = `
+    <div class="relative h-[320px] sm:h-[380px] overflow-hidden bg-[#05070D]">
+      <img src="${m.backdrop}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-full h-full object-cover">
+      <div class="absolute inset-0 bg-gradient-to-t from-[#0B1020] via-[#0B1020]/50 to-transparent"></div>
+      <div class="absolute inset-0 bg-gradient-to-r from-[#05070D]/80 via-transparent to-transparent"></div>
+      <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-8 flex gap-5 items-end">
+        <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-28 sm:w-36 h-40 sm:h-50 rounded-2xl object-cover shadow-2xl border-2 border-white/20 hidden sm:block">
+        <div class="flex-1 min-w-0 pb-1">
+          <div class="inline-flex items-center gap-2 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-full">★ ${m.rating} • ${m.year || 2024} • TMDB ID: ${m.tmdb_id || m.id}</div>
+          <h3 class="text-3xl sm:text-4xl font-black tracking-tighter text-white drop-shadow-lg mt-3">${m.title}</h3>
+          <div class="text-[#C7D0E0] text-xs font-bold tracking-widest mt-1">${m.genre.toUpperCase()} • DIGITAL LICENSE PLATFORM</div>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 sm:p-8">
+      <div class="flex flex-wrap gap-3">
+        ${isOwned ? `<button onclick="showToast('Digital license active in your CineVerse vault ✓')" class="flex-1 min-w-[180px] bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition"><i class="ri-shield-check-line text-xl"></i> LICENSE OWNED ✓</button>` : `
+          <button id="modalBuy" class="flex-1 min-w-[160px] bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition">BUY — ${formatPrice(m.price)} <i class="ri-shopping-bag-line"></i></button>
+          <button id="modalRent" class="flex-1 min-w-[160px] bg-white/10 border border-white/20 text-white py-4 rounded-full font-black tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition">RENT 48H — ${formatPrice(m.rental_price)} <i class="ri-time-line"></i></button>
+        `}
+        <button id="modalFav" class="px-6 py-4 rounded-full border border-white/15 bg-white/5 font-black text-xs tracking-widest flex items-center gap-2 hover:bg-white/10 text-white transition"><i class="${favorites.has(m.id) ? 'ri-heart-3-fill text-[#00A8E8]' : 'ri-heart-3-line'}"></i> ${favorites.has(m.id) ? 'SAVED' : 'SAVE'}</button>
+        <button onclick="navigator.clipboard.writeText(window.location.href); showToast('Link copied to clipboard ✓')" class="px-6 py-4 rounded-full border border-white/15 bg-white/5 font-black text-xs tracking-widest flex items-center gap-2 hover:bg-white/10 text-white transition"><i class="ri-share-line"></i> SHARE</button>
+      </div>
+      <div class="grid lg:grid-cols-3 gap-6 mt-8">
+        <div class="lg:col-span-2">
+          <h4 class="font-black tracking-tighter text-lg text-white">TMDB OVERVIEW</h4>
+          <p class="text-sm leading-6 font-medium text-[#C7D0E0] mt-2">${m.synopsis || m.description} Own or rent this digital movie license on CineVerse. View on supported partner devices (Apple TV, Google TV, Prime Video, Movies Anywhere).</p>
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-bold text-white/80">4K HDR</span>
+            <span class="bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-bold text-white/80">DOLBY ATMOS</span>
+            <span class="bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-bold text-[#00A8E8]">TMDB METADATA</span>
+          </div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl border border-white/10 p-5">
+          <div class="font-black text-sm text-white">COMMERCE DETAILS</div>
+          <div class="mt-4 space-y-2 text-xs font-medium text-[#C7D0E0]">
+            <div class="flex justify-between"><span class="text-[#8491A7]">Genre</span><span class="font-bold text-white">${m.genre}</span></div>
+            <div class="flex justify-between"><span class="text-[#8491A7]">Buy Price</span><span class="font-bold text-[#00A8E8]">${formatPrice(m.price)}</span></div>
+            <div class="flex justify-between"><span class="text-[#8491A7]">Rent Price</span><span class="font-bold text-white">${formatPrice(m.rental_price)}</span></div>
+            <div class="flex justify-between"><span class="text-[#8491A7]">TMDB Rating</span><span class="font-bold text-[#00A8E8]">★ ${m.rating}/10</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modalFav')?.addEventListener('click', () => { toggleFav(m.id); openModal(movies.find(x => x.id === m.id)); });
+  document.getElementById('modalBuy')?.addEventListener('click', () => { addToCart(m, 'purchase'); closeModal(); });
+  document.getElementById('modalRent')?.addEventListener('click', () => { addToCart(m, 'rental'); closeModal(); });
+}
+
+function closeModal() {
+  document.getElementById('movieModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+// SEPARATE MOVIE DETAILS PAGE NAVIGATION & CONTENT GENERATION
+function openMovieDetailsPage(movieId) {
+  const m = movies.find(x => x.id === parseInt(movieId));
+  if (!m) return;
+
+  closeSearchDropdown();
+  const sInput = document.getElementById('searchInput');
+  if (sInput) sInput.value = '';
+
+  const isOwned = library.some(l => l.id === m.id);
+  const placeholder = getNeutralPlaceholder(m.title);
+  const container = document.getElementById('movieDetailPageContent');
+
+  if (container) {
+    container.innerHTML = `
+      <div class="relative h-[360px] sm:h-[420px] overflow-hidden bg-[#05070D]">
+        <img src="${m.backdrop}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0B1020] via-[#0B1020]/50 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-[#05070D]/80 via-transparent to-transparent"></div>
+        <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 flex gap-6 items-end">
+          <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-32 sm:w-44 h-48 sm:h-64 rounded-2xl object-cover shadow-2xl border-2 border-white/20 hidden sm:block shrink-0">
+          <div class="flex-1 min-w-0 pb-2">
+            <div class="inline-flex items-center gap-2 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-full">★ ${m.rating} • ${m.year || 2024} • TMDB ID: ${m.tmdb_id || m.id}</div>
+            <h1 class="text-3xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-lg mt-3">${m.title}</h1>
+            <div class="text-[#C7D0E0] text-xs font-bold tracking-widest mt-1.5">${m.genre.toUpperCase()} • DIGITAL LICENSE PLATFORM</div>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 sm:p-10">
+        <div class="flex flex-wrap gap-3">
+          ${isOwned ? `<button onclick="showToast('Digital license active in your CineVerse vault ✓')" class="flex-1 min-w-[180px] bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition"><i class="ri-shield-check-line text-xl"></i> LICENSE OWNED ✓</button>` : `
+            <button id="pageBuy" class="flex-1 min-w-[160px] bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition">BUY — ${formatPrice(m.price)} <i class="ri-shopping-bag-line"></i></button>
+            <button id="pageRent" class="flex-1 min-w-[160px] bg-white/10 border border-white/20 text-white py-4 rounded-full font-black tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition">RENT 48H — ${formatPrice(m.rental_price)} <i class="ri-time-line"></i></button>
+          `}
+          <button id="pageFav" class="px-6 py-4 rounded-full border border-white/15 bg-white/5 font-black text-xs tracking-widest flex items-center gap-2 hover:bg-white/10 text-white transition"><i class="${favorites.has(m.id) ? 'ri-heart-3-fill text-[#00A8E8]' : 'ri-heart-3-line'}"></i> ${favorites.has(m.id) ? 'SAVED' : 'SAVE'}</button>
+          <button onclick="navigator.clipboard.writeText(window.location.href); showToast('Link copied to clipboard ✓')" class="px-6 py-4 rounded-full border border-white/15 bg-white/5 font-black text-xs tracking-widest flex items-center gap-2 hover:bg-white/10 text-white transition"><i class="ri-share-line"></i> SHARE</button>
+        </div>
+        <div class="grid lg:grid-cols-3 gap-8 mt-10">
+          <div class="lg:col-span-2">
+            <h3 class="font-black tracking-tighter text-xl text-white">TMDB OVERVIEW</h3>
+            <p class="text-sm leading-7 font-medium text-[#C7D0E0] mt-3">${m.synopsis || m.description} Own or rent this digital movie license on CineVerse. View on supported partner devices (Apple TV, Google TV, Prime Video, Movies Anywhere).</p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              <span class="bg-white/5 border border-white/10 px-3.5 py-2 rounded-full text-xs font-bold text-white/80">4K HDR</span>
+              <span class="bg-white/5 border border-white/10 px-3.5 py-2 rounded-full text-xs font-bold text-white/80">DOLBY ATMOS</span>
+              <span class="bg-white/5 border border-white/10 px-3.5 py-2 rounded-full text-xs font-bold text-[#00A8E8]">TMDB METADATA</span>
+            </div>
+            <button onclick="fetchWatchProviders('${m.tmdb_id || m.id}')" class="mt-6 bg-[#1677FF] text-white px-6 py-3.5 rounded-full font-black text-xs tracking-widest flex items-center gap-2 hover:bg-[#3D8BFF] transition"><i class="ri-external-link-line"></i> WHERE TO WATCH</button>
+          </div>
+          <div class="bg-[#10182B] rounded-3xl border border-white/10 p-6">
+            <div class="font-black text-base text-white">COMMERCE DETAILS</div>
+            <div class="mt-5 space-y-3 text-xs font-medium text-[#C7D0E0]">
+              <div class="flex justify-between"><span class="text-[#8491A7]">Genre</span><span class="font-bold text-white">${m.genre}</span></div>
+              <div class="flex justify-between"><span class="text-[#8491A7]">Buy Price</span><span class="font-bold text-[#00A8E8]">${formatPrice(m.price)}</span></div>
+              <div class="flex justify-between"><span class="text-[#8491A7]">Rent Price</span><span class="font-bold text-white">${formatPrice(m.rental_price)}</span></div>
+              <div class="flex justify-between"><span class="text-[#8491A7]">TMDB Rating</span><span class="font-bold text-[#00A8E8]">★ ${m.rating}/10</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pageFav')?.addEventListener('click', () => { toggleFav(m.id); openMovieDetailsPage(m.id); });
+    document.getElementById('pageBuy')?.addEventListener('click', () => { addToCart(m, 'purchase'); });
+    document.getElementById('pageRent')?.addEventListener('click', () => { addToCart(m, 'rental'); });
+  }
+
+  location.hash = `#movie/${m.id}`;
+  navigate('movie-detail');
+}
+
+function navigate(view) {
+  // Authentication Gate Check: If user is NOT logged in and attempts to access any view other than login, force login view
+  if (!isLoggedIn && view !== 'login') {
+    view = 'login';
+  }
+
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  const targetView = document.getElementById('view-' + view);
+  if (targetView) targetView.classList.remove('hidden');
+
+  // DYNAMIC CONTAINER TOP PADDING (PREVENTS NAVBAR FROM OVERLAPPING CONTENT ON AUTHENTICATED VIEWS)
+  const mainContainer = document.getElementById('mainContainer');
+  const navWrap = document.getElementById('navWrap');
+
+  if (view === 'login' || !isLoggedIn) {
+    if (navWrap) {
+      navWrap.style.display = 'none';
+      navWrap.classList.add('hidden');
+    }
+    if (mainContainer) {
+      mainContainer.style.paddingTop = '24px';
+    }
+  } else {
+    if (navWrap) {
+      navWrap.style.display = 'flex';
+      navWrap.classList.remove('hidden');
+    }
+    if (mainContainer) {
+      mainContainer.style.paddingTop = '120px';
+    }
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active', 'bg-[#1677FF]', 'text-white', 'shadow-[0_4px_16px_rgba(22,119,255,0.35)]'));
+  document.querySelectorAll(`[data-view="${view}"]`).forEach(b => {
+    if (b.classList.contains('nav-btn') && b.closest('#navbar')) {
+      b.classList.add('active', 'bg-[#1677FF]', 'text-white', 'shadow-[0_4px_16px_rgba(22,119,255,0.35)]');
+      b.classList.remove('text-[#C7D0E0]');
+    }
+  });
+
+  if (view === 'home' && location.hash.startsWith('#movie/')) {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+  }
+
+  document.getElementById('footer').classList.toggle('hidden', view === 'login');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const mm = document.getElementById('mobileMenu');
+  if (mm) { mm.classList.add('hidden'); mm.classList.remove('flex'); }
+}
+
+// NAVBAR SEARCH SUGGESTION SYSTEM HANDLERS
+const searchDropdown = document.getElementById('searchDropdown');
+const searchDropdownList = document.getElementById('searchDropdownList');
+
+function closeSearchDropdown() {
+  if (searchDropdown) {
+    searchDropdown.classList.add('hidden');
+    searchDropdown.classList.remove('flex');
+  }
+}
+
+function handleSearchInput(e) {
+  const term = e.target.value.trim();
+  if (!term) {
+    closeSearchDropdown();
+    return;
+  }
+
+  const matches = movies.filter(m => m.title.toLowerCase().includes(term.toLowerCase()));
+  if (matches.length === 0) {
+    searchDropdownList.innerHTML = `<div class="p-3 text-center text-xs font-bold text-[#8491A7]">No movies found</div>`;
+  } else {
+    searchDropdownList.innerHTML = matches.map(m => {
+      const placeholder = getNeutralPlaceholder(m.title);
+      return `
+        <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 cursor-pointer transition" onclick="openMovieDetailsPage(${m.id})">
+          <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-10 h-14 rounded-lg object-cover bg-[#05070D] shrink-0">
+          <div class="flex-1 min-w-0">
+            <div class="font-black text-xs text-white truncate">${m.title}</div>
+            <div class="text-[10px] font-bold text-[#8491A7] mt-0.5">${m.year || 2024} • ${m.genre}</div>
+          </div>
+          <span class="bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">★ ${m.rating}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  searchDropdown.classList.remove('hidden');
+  searchDropdown.classList.add('flex');
+}
+
+const sInput = document.getElementById('searchInput');
+sInput?.addEventListener('input', handleSearchInput);
+sInput?.addEventListener('focus', e => { if (e.target.value.trim()) handleSearchInput(e); });
+
+// Close dropdown on click outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#navSearchContainer')) {
+    closeSearchDropdown();
+  }
+});
+
+// Close dropdown on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeSearchDropdown();
+    if (sInput) sInput.blur();
+  }
+});
+
+// Handle hash-based deep linking for separate movie details page (#movie/<movie-id>)
+window.addEventListener('hashchange', () => {
+  const hash = location.hash;
+  if (hash.startsWith('#movie/')) {
+    const movieId = hash.replace('#movie/', '');
+    openMovieDetailsPage(movieId);
+  } else if (hash === '#home' || hash === '' || hash === '#discover') {
+    navigate('home');
+  }
+});
+
+// API Integration Calls
+async function fetchMovies() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/movies/`);
+    if (!res.ok) throw new Error('Failed to fetch movies catalog');
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+      movies = data.map((m, idx) => {
+        const mId = m.movie_id || m.MovieID || (idx + 1);
+        const title = m.title || m.MovieName || 'Movie Title';
+        const genre = m.genre || m.Category || 'Cinema';
+        const posterRaw = m.poster_image || m.ImageName || '';
+        const poster = resolvePoster(posterRaw, title);
+        const backdropRaw = m.backdrop_image || posterRaw;
+        const backdrop = resolvePoster(backdropRaw, title);
+
+        return {
+          id: mId,
+          movie_id: mId,
+          tmdb_id: m.tmdb_id || mId,
+          title: title,
+          genre: genre,
+          price: parseFloat(m.price || m.Price || 499),
+          rental_price: parseFloat(m.rental_price || 149),
+          rating: parseFloat(m.rating || m.Rating || 8.0),
+          description: m.description || m.Description || 'No description available.',
+          synopsis: m.description || m.Description || 'No description available.',
+          poster: poster,
+          backdrop: backdrop,
+          quantity: m.quantity || m.Quantity || 0,
+          year: 2024,
+          runtime: '2h 15m',
+          featured: idx < 8,
+          trending: idx < 6
+        };
+      });
+    }
+  } catch (err) {
+    console.warn("Could not fetch movies from backend:", err);
+    showToast("Backend offline: Using store cache");
+  }
+  render();
+  // Check hash route after movies load
+  if (location.hash.startsWith('#movie/')) {
+    const movieId = location.hash.replace('#movie/', '');
+    openMovieDetailsPage(movieId);
+  }
+}
+
+async function fetchUserOrders() {
+  if (!isLoggedIn || !currentUser || !currentUser.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/orders/${currentUser.user_id}/`);
+    if (res.ok) {
+      const orderData = await res.json();
+      userOrders = orderData;
+      const ownedMap = new Map();
+      orderData.forEach(ord => {
+        const items = ord.items || [];
+        items.forEach(it => {
+          const mId = it.movie_id || it.id;
+          const foundMovie = movies.find(x => x.id === mId) || {
+            id: mId,
+            title: it.name || it.title || 'Purchased Film',
+            price: parseFloat(it.price || 0),
+            genre: 'Cinema',
+            year: 2024,
+            rating: 8.0,
+            poster: getNeutralPlaceholder(it.name || 'Purchased Film')
+          };
+          ownedMap.set(mId, foundMovie);
+        });
+      });
+      library = Array.from(ownedMap.values());
+      save();
+      renderLibrary();
+      updateCounts();
+    }
+  } catch (err) {
+    console.error("Error fetching user orders:", err);
+  }
+}
+
+async function fetchCart() {
+  if (!isLoggedIn) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/session-cart/${sessionId}/`);
+      if (res.ok) {
+        const sessionItems = await res.json();
+        cart = sessionItems.map(sc => {
+          const mId = sc.movie_id;
+          return movies.find(m => m.id === mId) || {
+            id: mId,
+            title: sc.title || sc.MovieName || 'Movie',
+            price: parseFloat(sc.price || sc.Price || 499),
+            genre: sc.genre || 'Cinema',
+            year: 2024,
+            rating: 8.0,
+            poster: resolvePoster(sc.poster_image || sc.ImageName, sc.title || sc.MovieName)
+          };
+        });
+        updateCounts();
+        renderCartList();
+      }
+    } catch (e) { console.error("Error fetching guest session cart:", e); }
+  }
+}
+
+async function apiAddToCart(movie) {
+  if (isLoggedIn) {
+    try {
+      await fetch(`${API_BASE_URL}/update-quantity/${movie.id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 })
+      });
+    } catch (e) { console.error("Error updating cart quantity:", e); }
+  } else {
+    try {
+      await fetch(`${API_BASE_URL}/session-cart/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: sessionId, movieId: movie.id, quantity: 1 })
+      });
+    } catch (e) { console.error("Error posting session cart:", e); }
+  }
+}
+
+async function apiRemoveFromCart(movieId) {
+  if (isLoggedIn) {
+    try {
+      await fetch(`${API_BASE_URL}/update-quantity/${movieId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: -1 })
+      });
+    } catch (e) { console.error("Error removing cart quantity:", e); }
+  } else {
+    try {
+      await fetch(`${API_BASE_URL}/session-cart/clear/${sessionId}/`, { method: 'DELETE' });
+    } catch (e) { console.error("Error removing session cart item:", e); }
+  }
+}
+
+async function transferGuestCartToUser() {
+  try {
+    const res = await fetch(`${API_BASE_URL}/session-cart/${sessionId}/`);
+    if (res.ok) {
+      const guestItems = await res.json();
+      for (const git of guestItems) {
+        const mId = git.movie_id;
+        const qty = git.quantity || 1;
+        await fetch(`${API_BASE_URL}/update-quantity/${mId}/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity: qty })
+        });
+      }
+      await fetch(`${API_BASE_URL}/session-cart/clear/${sessionId}/`, { method: 'DELETE' });
+    }
+  } catch (e) { console.error("Error transferring guest cart:", e); }
+}
+
+// TAP-TO-TOGGLE BROWSER VOICE RECOGNITION ENGINE (Tap 1 = START, Tap 2 = STOP & PROCESS)
+let isListening = false;
+let speechRecognizer = null;
+
+if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  speechRecognizer = new SpeechRec();
+  speechRecognizer.continuous = false;
+  speechRecognizer.interimResults = false;
+  speechRecognizer.lang = 'en-US';
+
+  speechRecognizer.onstart = function() {
+    isListening = true;
+    setListeningState(true);
+    showToast("Listening... Tap mic again to finish or cancel.");
+  };
+
+  speechRecognizer.onresult = function(event) {
+    isListening = false;
+    setListeningState(false);
+    const transcriptText = event.results[0][0].transcript;
+    showToast(`Recognized: "${transcriptText}"`);
+    processVoiceCommand(transcriptText);
+  };
+
+  speechRecognizer.onerror = function(event) {
+    isListening = false;
+    setListeningState(false);
+    console.warn("Speech recognition notice:", event.error);
+    if (event.error === 'not-allowed') {
+      showToast("Microphone permission is required for voice search.");
+    } else if (event.error === 'no-speech') {
+      showToast("No voice command detected.");
+    } else if (event.error === 'aborted') {
+      showToast("Voice search stopped cleanly.");
+    } else {
+      showToast("Voice search stopped.");
+    }
+  };
+
+  speechRecognizer.onend = function() {
+    isListening = false;
+    setListeningState(false);
+  };
+}
+
+function toggleVoiceRecognition() {
+  if (!speechRecognizer) {
+    showToast("Voice search is not supported in this browser.");
+    return;
+  }
+  if (isListening) {
+    try {
+      speechRecognizer.stop();
+    } catch (e) { console.warn("Stop error:", e); }
+    isListening = false;
+    setListeningState(false);
+    showToast("Voice search stopped.");
+  } else {
+    try {
+      speechRecognizer.start();
+    } catch (e) {
+      console.warn("Start error:", e);
+    }
+  }
+}
+
+async function processVoiceCommand(transcriptText) {
+  if (!transcriptText) return;
+  const lower = transcriptText.toLowerCase();
+
+  if (lower.includes("cart")) {
+    showToast("Opening Cart...");
+    navigate('cart');
+    return;
+  } else if (lower.includes("library")) {
+    showToast("Opening Library...");
+    navigate('library');
+    return;
+  } else if (lower.includes("profile")) {
+    showToast("Opening Profile...");
+    navigate('profile');
+    return;
+  } else if (lower.includes("logout") || lower.includes("sign out")) {
+    document.getElementById('logoutBtn')?.click();
+    return;
+  } else if (lower.includes("action")) {
+    activeGenre = "Action";
+    render();
+    navigate('home');
+    showToast("Filtered by Action movies");
+    return;
+  } else if (lower.includes("sci-fi") || lower.includes("science fiction")) {
+    activeGenre = "Sci-Fi";
+    render();
+    navigate('home');
+    showToast("Filtered by Sci-Fi movies");
+    return;
+  }
+
+  // Check if voice command matches a movie title
+  const match = movies.find(m => m.title.toLowerCase().includes(lower) || lower.includes(m.title.toLowerCase()));
+  if (match) {
+    showToast(`Opening details for ${match.title}...`);
+    openMovieDetailsPage(match.id);
+    return;
+  }
+
+  try {
+    showToast('Processing voice command...');
+    const res = await fetch(`${API_BASE_URL}/voice/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: transcriptText })
+    });
+    const data = await res.json();
+    if (res.ok && data.aiResponse) {
+      const cmd = data.aiResponse;
+      if (cmd.response) showToast(cmd.response);
+
+      if (cmd.command === 'FILTER' && cmd.category) {
+        activeGenre = cmd.category;
+        render();
+        navigate('home');
+      } else if (cmd.command === 'NAVIGATE' && cmd.page) {
+        navigate(cmd.page);
+      } else if (cmd.command === 'LOGOUT') {
+        document.getElementById('logoutBtn')?.click();
+      }
+    }
+  } catch (err) {
+    showToast('Voice command executed');
+  }
+}
+
+function setListeningState(on) {
+  const wave = document.getElementById('waveAnim');
+  const listening = document.getElementById('listeningLabel');
+  const idle = document.getElementById('idleLabel');
+
+  if (listening) listening.classList.toggle('hidden', !on);
+  if (idle) idle.classList.toggle('hidden', on);
+  if (wave) {
+    wave.classList.toggle('opacity-30', !on);
+    wave.classList.toggle('opacity-100', on);
+  }
+}
+
+// Event Listeners Setup
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => navigate(b.dataset.view)));
+document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+  const m = document.getElementById('mobileMenu');
+  if (m) { m.classList.toggle('hidden'); m.classList.toggle('flex'); }
+});
+
+document.querySelectorAll('.genre-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.genre-btn').forEach(x => { x.classList.remove('active', 'bg-[#1677FF]', 'text-white'); x.classList.add('bg-[#10182B]', 'text-[#C7D0E0]', 'border', 'border-white/10'); });
+  b.classList.add('active', 'bg-[#1677FF]', 'text-white'); b.classList.remove('bg-[#10182B]', 'border-white/10');
+  activeGenre = b.dataset.genre; render();
+}));
+
+document.getElementById('sortSelect')?.addEventListener('change', e => { sortBy = e.target.value; render(); });
+document.getElementById('scrollLeft')?.addEventListener('click', () => document.getElementById('featuredRow')?.scrollBy({ left: -320, behavior: 'smooth' }));
+document.getElementById('scrollRight')?.addEventListener('click', () => document.getElementById('featuredRow')?.scrollBy({ left: 320, behavior: 'smooth' }));
+document.getElementById('closeModal')?.addEventListener('click', closeModal);
+document.getElementById('modalBackdrop')?.addEventListener('click', closeModal);
+document.getElementById('ctaExplore')?.addEventListener('click', () => document.getElementById('movieGrid')?.scrollIntoView({ behavior: 'smooth' }));
+document.getElementById('showreelBtn')?.addEventListener('click', () => showToast('TMDB Movie Catalog — Available in 4K HDR'));
+document.getElementById('librarySearch')?.addEventListener('input', renderLibrary);
+document.getElementById('libraryFilter')?.addEventListener('change', renderLibrary);
+
+// Auth Toggle (Login vs Signup)
+const toggleAuthModeBtn = document.getElementById('toggleAuthMode');
+if (toggleAuthModeBtn) {
+  toggleAuthModeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    authMode = authMode === 'login' ? 'signup' : 'login';
+    const titleEl = document.getElementById('authTitle');
+    const subEl = document.getElementById('authSubtitle');
+    const nameFld = document.getElementById('nameField');
+    const btnEl = document.getElementById('authSubmitBtn');
+    const labelEl = document.getElementById('authToggleLabel');
+
+    if (authMode === 'signup') {
+      if (titleEl) titleEl.textContent = 'Create your CineVerse Account';
+      if (subEl) subEl.textContent = 'Sign up to build your private movie vault.';
+      if (nameFld) nameFld.classList.remove('hidden');
+      if (btnEl) btnEl.innerHTML = 'CREATE ACCOUNT <i class="ri-arrow-right-line"></i>';
+      if (labelEl) labelEl.textContent = 'Already have an account?';
+      toggleAuthModeBtn.textContent = 'Sign in here.';
+    } else {
+      if (titleEl) titleEl.textContent = 'Sign in to CineVerse';
+      if (subEl) subEl.textContent = 'Enter your details to access your private movie vault.';
+      if (nameFld) nameFld.classList.add('hidden');
+      if (btnEl) btnEl.innerHTML = 'SIGN IN <i class="ri-arrow-right-line"></i>';
+      if (labelEl) labelEl.textContent = 'No account?';
+      toggleAuthModeBtn.textContent = 'Create one — start owning.';
+    }
+  });
+}
+
+// Password Visibility Toggle
+document.getElementById('togglePass')?.addEventListener('click', () => {
+  const inp = document.getElementById('passwordInput');
+  if (inp) {
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    const icon = document.querySelector('#togglePass i');
+    if (icon) icon.className = inp.type === 'password' ? 'ri-eye-line' : 'ri-eye-off-line';
+  }
+});
+
+// Login / Signup Form Handler
+document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('emailInput').value.trim();
+  const pass = document.getElementById('passwordInput').value.trim();
+  const name = document.getElementById('nameInput')?.value.trim();
+
+  let valid = true;
+  if (!email.includes('@') || !email.includes('.')) {
+    document.getElementById('emailError')?.classList.remove('hidden');
+    valid = false;
+  } else document.getElementById('emailError')?.classList.add('hidden');
+
+  if (pass.length < 6) {
+    document.getElementById('passError')?.classList.remove('hidden');
+    valid = false;
+  } else document.getElementById('passError')?.classList.add('hidden');
+
+  if (authMode === 'signup' && !name) {
+    document.getElementById('nameError')?.classList.remove('hidden');
+    valid = false;
+  } else document.getElementById('nameError')?.classList.add('hidden');
+
+  if (!valid) return;
+
+  if (authMode === 'signup') {
+    try {
+      const res = await fetch(`${API_BASE_URL}/signup/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, password: pass })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        currentUser = data.user;
+        isLoggedIn = true;
+        save();
+        await transferGuestCartToUser();
+        await fetchUserOrders();
+        updateCounts();
+        showToast('Account created — Welcome ' + currentUser.name + ' ✓');
+        navigate('home');
+      } else {
+        showToast(data.error || 'Signup failed');
+      }
+    } catch (err) {
+      showToast('Network error during signup');
+    }
+  } else {
+    try {
+      const res = await fetch(`${API_BASE_URL}/login/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: pass })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        currentUser = data.user;
+        isLoggedIn = true;
+        save();
+        await transferGuestCartToUser();
+        await fetchUserOrders();
+        updateCounts();
+        showToast('Welcome back, ' + currentUser.name + ' ✓');
+        navigate('home');
+      } else {
+        showToast(data.error || 'Invalid email or password');
+      }
+    } catch (err) {
+      showToast('Network error during login');
+    }
+  }
+});
+
+// Logout Handler - COMPLETE USER STATE CLEARING
+document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+  if (currentUser && currentUser.user_id) {
+    try {
+      await fetch(`${API_BASE_URL}/logout/${currentUser.user_id}/`, { method: 'POST' });
+    } catch (e) { console.error("Logout API error:", e); }
+  }
+  // 1. Clear memory variables
+  currentUser = null;
+  isLoggedIn = false;
+  cart = [];
+  library = [];
+  userOrders = [];
+  favorites.clear();
+
+  // 2. Clear all local storage keys
+  localStorage.removeItem('cv_user');
+  localStorage.removeItem('cv_logged');
+  localStorage.removeItem('cv_favs');
+  localStorage.removeItem('cv_cart');
+
+  // 3. Reset login form inputs to clean empty state
+  const emailInp = document.getElementById('emailInput');
+  const passInp = document.getElementById('passwordInput');
+  const nameInp = document.getElementById('nameInput');
+  if (emailInp) emailInp.value = '';
+  if (passInp) passInp.value = '';
+  if (nameInp) nameInp.value = '';
+
+  // 4. Reset profile & avatar UI
+  const pName = document.getElementById('profileName');
+  if (pName) pName.textContent = 'GUEST ACCOUNT';
+
+  const pSub = document.getElementById('profileSub');
+  if (pSub) pSub.textContent = 'NOT SIGNED IN — PLEASE SIGN IN TO ACCESS VAULT';
+
+  const pAvatar = document.getElementById('profileAvatar');
+  if (pAvatar) pAvatar.src = getInitialsAvatar();
+
+  const navAvatarImg = document.getElementById('navAvatarImg');
+  if (navAvatarImg) navAvatarImg.src = getInitialsAvatar();
+
+  // 5. Update counts & navigate to login view (hides navbar completely)
+  updateCounts();
+  navigate('login');
+  showToast('Signed out successfully');
+});
+
+// Checkout / Order Handler
+document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
+  if (cart.length === 0) { showToast('Cart is empty'); return; }
+  if (!isLoggedIn || !currentUser) { navigate('login'); showToast('Please sign in to purchase'); return; }
+
+  const subtotal = cart.reduce((s, m) => s + (m.selected_price || m.price), 0);
+  const tax = subtotal * 0.08;
+  const totalAmount = subtotal + tax;
+  const selectedPayMethod = document.querySelector('input[name="payMethod"]:checked')?.value || 'COD';
+
+  try {
+    const orderPayload = {
+      userId: currentUser.user_id,
+      amount: totalAmount,
+      items: cart,
+      paymentMethod: selectedPayMethod
+    };
+
+    const res = await fetch(`${API_BASE_URL}/create-order/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderPayload)
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      if (selectedPayMethod === 'UPI' && data.razorpayOrderId && window.Razorpay) {
+        const options = {
+          "key": data.keyId || "",
+          "amount": Math.round(totalAmount * 100),
+          "currency": "INR",
+          "name": "CineVerse",
+          "description": "Digital Movie License",
+          "order_id": data.razorpayOrderId,
+          "handler": async function (response) {
+            try {
+              const vRes = await fetch(`${API_BASE_URL}/verify-payment/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_signature: response.razorpay_signature,
+                  orderId: data.orderId
+                })
+              });
+              const vData = await vRes.json();
+              if (vRes.ok && vData.success) {
+                cart = [];
+                await fetchUserOrders();
+                updateCounts();
+                renderCartList();
+                render();
+                showToast('Payment verified & order completed ✓');
+                navigate('library');
+              } else {
+                showToast('Payment verification failed');
+              }
+            } catch (e) { showToast('Payment verification error'); }
+          },
+          "prefill": {
+            "name": currentUser.name,
+            "email": currentUser.email
+          },
+          "theme": { "color": "#1677FF" }
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } else {
+        cart = [];
+        await fetchUserOrders();
+        updateCounts();
+        renderCartList();
+        render();
+        showToast('Order placed successfully — added to Library ✓');
+        navigate('library');
+      }
+    } else {
+      showToast(data.error || 'Order creation failed');
+    }
+  } catch (err) {
+    showToast('Network error during checkout');
+  }
+});
+
+// Voice Panel Trigger Handlers (Tap to Toggle)
+const voicePanel = document.getElementById('voicePanel');
+function openVoice() { if (voicePanel) voicePanel.classList.remove('hidden'); }
+function closeVoice() { if (voicePanel) voicePanel.classList.add('hidden'); }
+
+document.getElementById('voiceBtn')?.addEventListener('click', () => {
+  voicePanel?.classList.toggle('hidden');
+  toggleVoiceRecognition();
+});
+document.getElementById('closeVoice')?.addEventListener('click', closeVoice);
+
+document.querySelectorAll('.voice-phrase').forEach(b => b.addEventListener('click', () => {
+  const phrase = b.textContent.replace(/[^a-zA-Z0-9 ]/gi, '').trim();
+  closeVoice();
+  processVoiceCommand(phrase);
+}));
+
+const micBtn = document.getElementById('micAction');
+if (micBtn) {
+  micBtn.addEventListener('click', () => {
+    toggleVoiceRecognition();
+  });
+}
+
+// App Initialization Sequence — STRICT LOGIN GATE FOR UNAUTHENTICATED VISITORS
+async function initApp() {
+  await fetchMovies();
+  if (isLoggedIn && currentUser) {
+    await fetchUserOrders();
+    updateCounts();
+    navigate('home');
+  } else {
+    // Clear any stale local values that force Discover
+    localStorage.removeItem('cv_logged');
+    localStorage.removeItem('cv_user');
+    currentUser = null;
+    isLoggedIn = false;
+    await fetchCart();
+    updateCounts();
+    navigate('login'); // Require Login First for Unauthenticated Visitors
+  }
+  renderCartList();
+  renderLibrary();
+}
+
+initApp();
+
+const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }), { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>

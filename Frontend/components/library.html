@@ -1,0 +1,47 @@
+<!-- LIBRARY VIEW -->
+<div id="view-library" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 p-6 sm:p-8 mt-2 text-white shadow-2xl">
+    <div class="flex flex-wrap items-start justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 bg-[#1677FF]/15 border border-[#00A8E8]/30 text-[#00A8E8] px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest mb-3"><span class="w-2 h-2 bg-[#00A8E8] rounded-full"></span> YOUR PRIVATE MOVIE VAULT</div>
+        <h2 class="text-4xl sm:text-5xl font-black tracking-tighter text-white">LIBRARY</h2>
+        <p class="text-sm text-[#C7D0E0] font-medium mt-2">Digital movie licenses you own or rent. View external watch provider options.</p>
+      </div>
+      <div class="flex gap-3 w-full sm:w-auto">
+        <div class="flex-1 sm:flex-none bg-[#10182B] rounded-full px-4 py-3 flex items-center gap-2 border border-white/10">
+          <i class="ri-search-line text-[#8491A7]"></i>
+          <input id="librarySearch" placeholder="Search library..." class="bg-transparent outline-none text-sm font-medium w-full sm:w-[180px] text-white placeholder:text-[#8491A7]">
+        </div>
+        <select id="libraryFilter" class="bg-[#10182B] text-white rounded-full px-5 py-3 text-xs font-black tracking-widest border border-white/10 outline-none">
+          <option value="RECENTLY ADDED">RECENTLY ADDED</option>
+          <option value="A-Z">A-Z</option>
+          <option value="YEAR">YEAR</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">OWNED LICENSES</div>
+        <div id="statOwned" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        <div class="text-xs font-medium text-[#8491A7]">Permanent licenses</div>
+      </div>
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">ACTIVE RENTALS</div>
+        <div id="statLicenses" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        <div class="text-xs font-medium text-[#8491A7]">48-Hour rentals</div>
+      </div>
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">TOTAL SPENT</div>
+        <div id="statSpent" class="text-3xl font-black tracking-tighter mt-1 text-white">₹0.00</div>
+        <div class="text-xs font-medium text-[#8491A7]">Vault investments</div>
+      </div>
+    </div>
+    <div id="libraryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"></div>
+    <div id="libraryEmpty" class="text-center py-20">
+      <div class="w-20 h-20 rounded-full bg-[#10182B] border border-white/10 grid place-items-center mx-auto text-3xl text-[#1677FF]">◐</div>
+      <h3 class="font-black text-xl tracking-tighter mt-4 text-white">Your vault is empty</h3>
+      <p class="text-sm text-[#8491A7] max-w-[420px] mx-auto mt-2 font-medium">When you purchase or rent movies they will appear here. Start building your digital collection.</p>
+      <button data-view="home" class="nav-btn mt-6 bg-[#1677FF] text-white px-7 py-3 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">DISCOVER FILMS</button>
+    </div>
+  </div>
+</div>

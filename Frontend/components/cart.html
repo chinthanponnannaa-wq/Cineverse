@@ -1,0 +1,43 @@
+<!-- CART VIEW -->
+<div id="view-cart" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="grid lg:grid-cols-12 gap-6 mt-2">
+    <div class="lg:col-span-8 bg-[#0B1020] rounded-[32px] border border-white/10 p-6 sm:p-8 text-white shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-white">YOUR CART</h2>
+        <span id="cartCountLabel" class="bg-[#10182B] border border-white/10 px-3.5 py-1.5 rounded-full text-xs font-black text-[#00A8E8]">0 ITEMS</span>
+      </div>
+      <p class="text-sm text-[#C7D0E0] font-medium mt-2">Digital movie licenses (Permanent purchase or 48-Hour rental).</p>
+      <div id="cartList" class="mt-8 space-y-4"></div>
+      <div id="cartEmpty" class="text-center py-16">
+        <div class="w-16 h-16 rounded-full bg-[#10182B] border border-white/10 grid place-items-center mx-auto text-2xl text-[#1677FF]"><i class="ri-shopping-bag-line"></i></div>
+        <h3 class="font-black text-lg mt-4 text-white">Cart is empty</h3>
+        <p class="text-sm text-[#8491A7] font-medium">Add movies you love to your cart.</p>
+        <button data-view="home" class="nav-btn mt-6 bg-[#1677FF] text-white px-6 py-3 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">BROWSE STORE</button>
+      </div>
+      <div class="mt-6 flex items-center gap-2 text-xs font-bold text-[#8491A7]"><i class="ri-shield-check-line text-[#00A8E8]"></i> Secure CineVerse checkout • Instant digital activation</div>
+    </div>
+    <div class="lg:col-span-4">
+      <div class="bg-[#10182B] border border-white/10 rounded-[32px] p-6 sm:p-7 text-white sticky top-[88px] shadow-2xl">
+        <h3 class="font-black text-xl tracking-tighter">ORDER SUMMARY</h3>
+        <div class="mt-6 space-y-3 text-sm">
+          <div class="flex justify-between font-medium text-[#C7D0E0]"><span>Subtotal</span><span id="sumSubtotal" class="text-white font-black">₹0.00</span></div>
+          <div class="flex justify-between font-medium text-[#C7D0E0]"><span>Tax (8%)</span><span id="sumTax" class="text-white font-black">₹0.00</span></div>
+          <div class="h-px bg-white/10 my-4"></div>
+          <div class="flex justify-between items-center"><span class="font-black tracking-widest text-xs">TOTAL</span><span id="sumTotal" class="text-3xl font-black tracking-tighter text-[#00A8E8]">₹0.00</span></div>
+        </div>
+        <div class="mt-5 space-y-2">
+          <label class="block text-[11px] font-black tracking-widest text-[#8491A7]">PAYMENT METHOD</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer text-xs font-bold">
+              <input type="radio" name="payMethod" value="COD" checked class="accent-[#1677FF]"> Cash / COD
+            </label>
+            <label class="flex items-center gap-2 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer text-xs font-bold">
+              <input type="radio" name="payMethod" value="UPI" class="accent-[#1677FF]"> Razorpay UPI
+            </label>
+          </div>
+        </div>
+        <button id="checkoutBtn" class="mt-6 w-full bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest text-sm hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition flex items-center justify-center gap-2">PURCHASE & OWN <i class="ri-lock-2-line"></i></button>
+      </div>
+    </div>
+  </div>
+</div>

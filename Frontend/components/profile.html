@@ -1,0 +1,44 @@
+<!-- PROFILE VIEW -->
+<div id="view-profile" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden mt-2 text-white shadow-2xl">
+    <div class="h-44 sm:h-52 bg-[#05070D] relative p-6 flex items-end">
+      <div class="flex items-center gap-5 z-10">
+        <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#00A8E8] bg-[#10182B] p-1 shadow-2xl overflow-hidden shrink-0">
+          <img id="profileAvatar" src="" style="object-fit: contain;" class="w-full h-full rounded-full">
+        </div>
+        <div>
+          <h2 id="profileName" class="text-white font-black text-2xl sm:text-3xl tracking-tighter">USER ACCOUNT</h2>
+          <p id="profileSub" class="text-[#8491A7] text-xs font-bold tracking-widest mt-1">MEMBER SINCE 2026</p>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 sm:p-8 pt-8">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">FILMS OWNED</div>
+          <div id="profileOwned" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">ACTIVE RENTALS</div>
+          <div id="profileLicenses" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10 col-span-2 sm:col-span-1">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">LIFETIME SPENT</div>
+          <div id="profileSpent" class="text-3xl font-black tracking-tighter mt-1 text-white">₹0.00</div>
+        </div>
+      </div>
+
+      <div class="mt-8">
+        <h3 class="font-black tracking-tighter text-xl text-white">ORDER & LICENSE HISTORY</h3>
+        <div id="purchaseHistory" class="mt-4 space-y-3"></div>
+        <div id="noHistory" class="bg-[#10182B] border border-dashed border-white/10 rounded-2xl p-8 text-center mt-4">
+          <div class="text-sm font-bold text-[#8491A7]">No order history yet. Your transactions will appear here.</div>
+        </div>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-white/10 flex justify-end">
+        <button id="logoutBtn" class="bg-red-500/20 text-red-400 border border-red-500/30 px-6 py-3 rounded-full font-black text-xs tracking-widest hover:bg-red-500 hover:text-white transition">LOG OUT</button>
+      </div>
+    </div>
+  </div>
+</div>

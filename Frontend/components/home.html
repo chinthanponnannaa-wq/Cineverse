@@ -1,0 +1,103 @@
+<!-- HOME VIEW -->
+<div id="view-home" class="view hidden">
+  <!-- HERO -->
+  <section class="max-w-[1280px] mx-auto px-4 lg:px-4">
+    <div class="bg-[#0B1020] rounded-[32px] lg:rounded-[40px] border border-white/10 overflow-hidden relative shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+      <div class="grid lg:grid-cols-12 gap-0">
+        <!-- Left -->
+        <div class="lg:col-span-7 p-7 sm:p-10 lg:p-12 pb-8 relative">
+          <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 py-1.5 mb-6">
+            <span class="w-2 h-2 rounded-full bg-[#00A8E8] animate-pulse"></span>
+            <span class="text-[10px] font-black tracking-[0.14em] text-white/90">DIGITAL MOVIE VAULT • PERMANENT OWNERSHIP</span>
+          </div>
+          <h1 class="hero-title">
+            <span class="block text-white">OWN YOUR</span>
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-white via-[#C7D0E0] to-[#00A8E8]">CINEMA.</span>
+            <span class="block text-white">FOREVER.</span>
+          </h1>
+          <p class="mt-5 text-[15px] leading-6 text-[#C7D0E0] max-w-[520px] font-medium">Discover films from TMDB, purchase permanent licenses, or rent titles for 48 hours. Always in 4K HDR in your private collection.</p>
+          <div class="flex flex-wrap gap-3 mt-8">
+            <button id="ctaExplore" class="bg-[#1677FF] text-white px-7 py-4 rounded-full font-black text-xs tracking-[0.14em] flex items-center gap-3 hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition">EXPLORE COLLECTION <span class="w-7 h-7 rounded-full bg-white text-[#1677FF] grid place-items-center"><i class="ri-arrow-right-line"></i></span></button>
+            <button id="showreelBtn" class="px-6 py-4 rounded-full font-black text-xs tracking-[0.14em] border border-white/15 bg-white/5 text-white hover:bg-white/10 transition flex items-center gap-2"><i class="ri-play-circle-line text-lg text-[#00A8E8]"></i> CATALOG HIGHLIGHTS</button>
+          </div>
+          <div class="grid grid-cols-3 gap-6 mt-10 border-t border-white/10 pt-7 max-w-[520px]">
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-white">4K HDR</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">DOLBY ATMOS</div>
+            </div>
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-[#00A8E8]">TMDB</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">METADATA CATALOG</div>
+            </div>
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-[#1677FF]">∞</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">FOREVER ACCESS</div>
+            </div>
+          </div>
+        </div>
+        <!-- Right Dynamic TMDB Hero Artwork Collection Stack (3-Card Rotation Stack) -->
+        <div class="lg:col-span-5 bg-[#05070D] relative min-h-[480px] lg:min-h-[580px] overflow-hidden p-6 lg:p-8 border-l border-white/5 flex flex-col items-center justify-center">
+          <div class="absolute top-6 right-6 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3.5 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(22,119,255,0.4)] z-20"><span class="w-2 h-2 bg-[#00A8E8] rounded-full animate-pulse"></span> TMDB COLLECTION</div>
+          <div id="heroPosterStack" class="relative z-10 w-full max-w-[340px] flex items-center justify-center gap-3">
+            <!-- Dynamic TMDB Carousel Cards inserted cleanly by JS -->
+          </div>
+        </div>
+      </div>
+      <!-- marquee -->
+      <div class="bg-[#10182B] border-t border-white/10 py-2.5 overflow-hidden text-[#00A8E8]">
+        <div class="flex whitespace-nowrap marquee">
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTER / GENRES -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-8">
+    <div class="flex flex-wrap items-center gap-3 justify-between">
+      <div class="flex items-center gap-2 overflow-auto no-scrollbar py-1">
+        <button data-genre="All" class="genre-btn active bg-[#1677FF] text-white px-5 py-2.5 rounded-full text-xs font-black tracking-widest shadow-[0_4px_16px_rgba(22,119,255,0.3)]">ALL</button>
+        <button data-genre="Sci-Fi" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">SCI-FI</button>
+        <button data-genre="Action" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">ACTION</button>
+        <button data-genre="Drama" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">DRAMA</button>
+        <button data-genre="Animation" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">ANIMATION</button>
+        <button data-genre="Crime" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">CRIME</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold text-[#8491A7] hidden sm:inline">SORT BY</span>
+        <select id="sortSelect" class="bg-[#10182B] text-white border border-white/10 rounded-full px-4 py-2 text-xs font-bold outline-none">
+          <option value="featured">FEATURED</option>
+          <option value="rating">RATING</option>
+          <option value="price-low">PRICE: LOW TO HIGH</option>
+          <option value="price-high">PRICE: HIGH TO LOW</option>
+          <option value="year">YEAR</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED / TRENDING ROW -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-white">TMDB FEATURED TITLES</h2>
+        <p class="text-xs font-medium text-[#8491A7] mt-0.5">Popular movies available for purchase or rental</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="scrollLeft" class="w-9 h-9 rounded-full bg-[#10182B] text-white border border-white/10 grid place-items-center hover:bg-white/10 transition"><i class="ri-arrow-left-s-line"></i></button>
+        <button id="scrollRight" class="w-9 h-9 rounded-full bg-[#10182B] text-white border border-white/10 grid place-items-center hover:bg-white/10 transition"><i class="ri-arrow-right-s-line"></i></button>
+      </div>
+    </div>
+    <div id="featuredRow" class="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar snap-x py-2"></div>
+  </section>
+
+  <!-- MAIN CATALOG GRID -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-12 mb-16">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-white">BROWSE MOVIE CATALOG</h2>
+    </div>
+    <div id="movieGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6"></div>
+  </section>
+</div>

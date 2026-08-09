@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineVerse — Discover. Purchase. Rent. Own.</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css" rel="stylesheet">
+<script type="module" src="js/app.js"></script>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#05070D] text-[#FFFFFF] antialiased overflow-x-hidden selection:bg-[#1677FF] selection:text-white">
+
+<!-- TOAST NOTIFICATION (HIGH Z-INDEX z-[99999] TO ALWAYS RENDER ABOVE NAVBAR & MODALS) -->
+<div id="toast" class="fixed top-6 right-6 z-[99999] bg-[#10182B] text-white border border-[#1677FF]/40 rounded-2xl px-5 py-3.5 shadow-[0_10px_40px_rgba(0,0,0,0.9)] hidden items-center gap-3 transition">
+  <div class="w-7 h-7 rounded-full bg-[#1677FF] grid place-items-center text-xs font-black text-white">✓</div>
+  <div id="toastMsg" class="text-xs font-bold tracking-wide">Action completed</div>
+</div>
+
+<!-- NAVBAR (HIDDEN BY DEFAULT WHEN UN-AUTHENTICATED / ON LOGIN VIEW) -->
+<div id="navWrap" class="fixed top-0 inset-x-0 z-50 flex justify-center pt-5 px-3 pointer-events-none hidden">
+  <nav id="navbar" class="pointer-events-auto w-full max-w-[1280px] bg-[#0B1020]/90 glass border border-white/10 rounded-full px-4 py-2.5 flex items-center justify-between shadow-[0_12px_40px_rgba(0,0,0,0.8)] transition-all duration-500">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
+        <div class="w-9 h-9 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-[16px] tracking-tighter shadow-[0_0_15px_rgba(22,119,255,0.5)]">◐</div>
+        <span class="font-black tracking-[-0.04em] text-[18px] text-white">CINEVERSE</span>
+        <span class="hidden md:inline-flex text-[9px] font-black tracking-[0.14em] bg-[#1677FF]/15 text-[#00A8E8] border border-[#00A8E8]/30 px-2.5 py-1 rounded-full">STORE</span>
+      </div>
+      <div id="navLinksContainer" class="hidden lg:flex items-center bg-white/5 p-1 rounded-full gap-1 border border-white/10">
+        <button data-view="home" class="nav-btn active bg-[#1677FF] text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] shadow-[0_4px_16px_rgba(22,119,255,0.35)] transition">DISCOVER</button>
+        <button data-view="library" class="nav-btn text-[#C7D0E0] hover:text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] transition">LIBRARY <span id="libCount" class="ml-1 hidden bg-[#00A8E8] text-black px-1.5 py-0.5 rounded-full text-[9px] font-bold">0</span></button>
+        <button data-view="cart" class="nav-btn text-[#C7D0E0] hover:text-white px-5 py-2 rounded-full text-[11px] font-black tracking-[0.1em] flex items-center gap-2 transition">CART <span id="cartBadge" class="bg-[#1677FF] text-white min-w-[20px] h-5 grid place-items-center rounded-full text-[10px] px-1 font-black">0</span></button>
+      </div>
+    </div>
+    <div class="flex items-center gap-2.5">
+      <!-- NAVBAR SEARCH INPUT WITH SEARCH SUGGESTION DROPDOWN PANEL -->
+      <div id="navSearchContainer" class="relative hidden md:flex items-center gap-2 bg-white/5 rounded-full px-3.5 py-1.5 border border-white/10 focus-within:border-[#1677FF]/60 transition">
+        <i class="ri-search-line text-[#8491A7]"></i>
+        <input id="searchInput" placeholder="Search movies..." autocomplete="off" class="bg-transparent outline-none text-xs font-medium w-[150px] xl:w-[180px] text-white placeholder:text-[#8491A7]">
+        
+        <!-- SEARCH SUGGESTIONS DROPDOWN PANEL -->
+        <div id="searchDropdown" class="absolute top-full right-0 mt-3 w-[280px] sm:w-[320px] bg-[#0B1020]/95 glass border border-white/15 rounded-2xl p-2 shadow-[0_20px_50px_rgba(0,0,0,0.9)] hidden flex-col gap-1 max-h-[360px] overflow-y-auto z-50">
+          <div id="searchDropdownList" class="flex flex-col gap-1"></div>
+        </div>
+      </div>
+
+      <!-- AUTHENTICATED NAVBAR VOICE MICROPHONE BUTTON (TAP TO TOGGLE) -->
+      <button id="voiceBtn" title="Voice Search (Tap to speak)" class="w-10 h-10 rounded-full bg-[#1677FF] text-white grid place-items-center hover:scale-105 hover:bg-[#3D8BFF] transition shadow-[0_4px_20px_rgba(22,119,255,0.4)]"><i class="ri-mic-line text-[18px]"></i></button>
+      <button id="navProfileBtn" data-view="profile" class="nav-btn hidden md:grid w-10 h-10 rounded-full bg-[#10182B] text-white place-items-center overflow-hidden border border-[#00A8E8]/40 hover:border-[#1677FF] transition">
+        <img id="navAvatarImg" src="" style="object-fit: contain;" class="w-full h-full p-0.5">
+      </button>
+      <button id="loginBtn" data-view="login" class="hidden md:inline-flex bg-[#1677FF] text-white px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-[#3D8BFF] hover:shadow-[0_0_20px_rgba(22,119,255,0.4)] transition">LOGIN</button>
+      <button id="mobileMenuBtn" class="lg:hidden w-10 h-10 rounded-full bg-white/10 text-white border border-white/10 grid place-items-center"><i class="ri-menu-line"></i></button>
+    </div>
+  </nav>
+</div>
+
+<!-- Mobile menu -->
+<div id="mobileMenu" class="fixed inset-0 z-40 bg-[#05070D]/95 backdrop-blur-2xl hidden flex-col pt-24 px-6 gap-2 text-white border-b border-white/10">
+  <button data-view="home" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">DISCOVER</button>
+  <button data-view="library" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">LIBRARY</button>
+  <button data-view="cart" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">CART</button>
+  <button data-view="profile" class="mobile-link text-left py-4 border-b border-white/10 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">PROFILE</button>
+  <button data-view="login" class="mobile-link text-left py-4 font-black text-3xl tracking-tighter hover:text-[#00A8E8] transition">LOGIN</button>
+</div>
+
+<!-- VOICE ASSISTANT PANEL (TAP TO TOGGLE) -->
+<div id="voicePanel" class="fixed bottom-6 right-6 z-40 w-[340px] max-w-[calc(100vw-24px)] bg-[#10182B] rounded-[28px] shadow-[0_25px_70px_rgba(0,0,0,0.9)] border border-white/15 p-6 hidden text-white">
+  <div class="flex items-center justify-between mb-5">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 grid place-items-center"><i class="ri-customer-service-2-line"></i></div>
+      <div>
+        <div class="font-black text-sm leading-none text-white">CINE VOICE ASSIST</div>
+        <div class="text-[10px] font-bold tracking-widest text-[#00A8E8] mt-0.5">TAP TO SPEAK / STOP</div>
+      </div>
+    </div>
+    <button id="closeVoice" class="w-8 h-8 rounded-full bg-white/10 text-white grid place-items-center hover:bg-white/20 transition"><i class="ri-close-line"></i></button>
+  </div>
+  <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-4">
+    <div class="text-xs font-bold tracking-widest text-[#8491A7] mb-2">VOICE COMMAND EXAMPLES</div>
+    <div class="flex flex-wrap gap-2">
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Find Dune”</button>
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Show action movies”</button>
+      <button class="voice-phrase text-xs font-semibold bg-white/5 border border-white/10 text-white/90 px-3 py-2 rounded-full hover:bg-[#1677FF] hover:text-white transition">“Open cart”</button>
+    </div>
+  </div>
+  <div id="waveArea" class="h-[72px] bg-[#05070D] rounded-2xl flex items-center justify-center gap-1.5 relative overflow-hidden border border-white/10">
+    <div class="wave flex items-end gap-1.5 h-8 opacity-30" id="waveAnim">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div id="listeningLabel" class="absolute inset-0 grid place-items-center text-[#00A8E8] font-black tracking-widest text-xs hidden">LISTENING... TAP AGAIN TO FINISH</div>
+    <div id="idleLabel" class="absolute inset-0 grid place-items-center text-white/60 font-bold tracking-widest text-[11px]">TAP MICROPHONE TO SPEAK</div>
+  </div>
+  <button id="micAction" class="mt-4 w-full bg-[#1677FF] text-white font-black py-3 rounded-full flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition shadow-[0_0_20px_rgba(22,119,255,0.3)]"><span class="w-2.5 h-2.5 bg-[#00A8E8] rounded-full animate-pulse"></span> TAP TO SPEAK / STOP</button>
+</div>
+
+<!-- MAIN CONTENT CONTAINER (DYNAMIC TOP PADDING DEDICATED TO PREVENT NAVBAR OVERLAP) -->
+<main id="mainContainer" class="pt-6 sm:pt-10 transition-all duration-300">
+
+<!-- LOGIN VIEW (DEFAULT INITIAL HTML PAGE - NO NAVBAR) -->
+<div id="view-login" class="view max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden grid lg:grid-cols-2 min-h-[600px] mt-2 relative shadow-2xl">
+    <div class="absolute inset-0 pointer-events-none opacity-25" style="background:radial-gradient(700px 500px at 10% 20%, rgba(22,119,255,0.3) 0%, transparent 55%), radial-gradient(600px 400px at 90% 80%, rgba(0,168,232,0.2) 0%, transparent 60%)"></div>
+    
+    <!-- LEFT SIDE: CINEVERSE BRANDING & VALUE PROPOSITION -->
+    <div class="relative p-8 sm:p-12 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-white/10">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-xl shadow-[0_0_20px_rgba(22,119,255,0.5)]">◐</div>
+          <span class="font-black text-2xl tracking-tighter text-white">CINEVERSE</span>
+        </div>
+        <h2 class="text-white text-5xl sm:text-6xl font-black tracking-tighter leading-[0.9] mt-8">
+          OWN YOUR<br>
+          <span class="text-[#00A8E8]">CINEMA.</span><br>
+          FOREVER.
+        </h2>
+        <p class="text-[#C7D0E0] text-sm leading-6 font-medium mt-6 max-w-[420px]">
+          Discover movies, purchase permanent digital licenses, rent titles, and manage your private movie vault. No monthly subscriptions. Always yours in 4K HDR.
+        </p>
+        <div class="mt-8 space-y-3 max-w-[400px]">
+          <div class="flex items-center gap-3 text-xs font-bold text-white/90 bg-white/5 border border-white/10 p-3.5 rounded-2xl">
+            <i class="ri-shield-check-line text-lg text-[#00A8E8]"></i> Permanent 4K HDR Digital Licenses
+          </div>
+          <div class="flex items-center gap-3 text-xs font-bold text-white/90 bg-white/5 border border-white/10 p-3.5 rounded-2xl">
+            <i class="ri-time-line text-lg text-[#1677FF]"></i> Flexible 48-Hour Rental Options
+          </div>
+          <div class="flex items-center gap-3 text-xs font-bold text-white/90 bg-white/5 border border-white/10 p-3.5 rounded-2xl">
+            <i class="ri-external-link-line text-lg text-[#00A8E8]"></i> Live TMDB Catalog & External Watch Providers
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 text-[#8491A7] text-[11px] font-bold tracking-widest mt-10">
+        <span class="w-8 h-px bg-white/20"></span> CINEVERSE DIGITAL LICENSE PLATFORM
+      </div>
+    </div>
+
+    <!-- RIGHT SIDE: CINEVERSE AUTHENTICATION FORM -->
+    <div class="relative bg-[#10182B] p-8 sm:p-12 flex flex-col justify-center text-white">
+      <h3 id="authTitle" class="font-black text-3xl tracking-tighter text-white">Sign in to CineVerse</h3>
+      <p id="authSubtitle" class="text-sm text-[#8491A7] font-medium mt-1">Enter your details to access your private movie vault.</p>
+      
+      <form id="loginForm" class="mt-8 space-y-4">
+        <div id="nameField" class="hidden">
+          <label class="text-[11px] font-black tracking-widest text-[#C7D0E0]">FULL NAME</label>
+          <div class="mt-2 relative">
+            <i class="ri-user-line absolute left-4 top-1/2 -translate-y-1/2 text-[#8491A7]"></i>
+            <input id="nameInput" type="text" placeholder="Chinthan" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-3.5 text-sm font-medium text-white outline-none focus:border-[#1677FF] focus:bg-white/10 transition placeholder:text-white/30">
+          </div>
+          <p id="nameError" class="text-xs font-bold text-red-400 mt-1 hidden">Please enter your name.</p>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-black tracking-widest text-[#C7D0E0]">EMAIL ADDRESS</label>
+          <div class="mt-2 relative">
+            <i class="ri-mail-line absolute left-4 top-1/2 -translate-y-1/2 text-[#8491A7]"></i>
+            <input id="emailInput" type="email" placeholder="you@studio.com" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-3.5 text-sm font-medium text-white outline-none focus:border-[#1677FF] focus:bg-white/10 transition placeholder:text-white/30" required>
+          </div>
+          <p id="emailError" class="text-xs font-bold text-red-400 mt-1 hidden">Enter a valid email address.</p>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-black tracking-widest text-[#C7D0E0]">PASSWORD</label>
+          <div class="mt-2 relative">
+            <i class="ri-lock-2-line absolute left-4 top-1/2 -translate-y-1/2 text-[#8491A7]"></i>
+            <input id="passwordInput" type="password" placeholder="••••••••" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-11 py-3.5 text-sm font-medium text-white outline-none focus:border-[#1677FF] focus:bg-white/10 transition placeholder:text-white/30" required>
+            <button type="button" id="togglePass" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/10 text-white border border-white/10 grid place-items-center hover:bg-white/20 transition"><i class="ri-eye-line"></i></button>
+          </div>
+          <p id="passError" class="text-xs font-bold text-red-400 mt-1 hidden">Password must be at least 6 characters.</p>
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" class="accent-[#1677FF] w-4 h-4">
+            <span class="text-xs font-bold text-[#C7D0E0]">Remember session</span>
+          </label>
+          <a href="#" onclick="showToast('Password reset link sent to registered email'); return false;" class="text-xs font-black underline decoration-2 underline-offset-4 text-[#00A8E8]">FORGOT PASSWORD?</a>
+        </div>
+
+        <button id="authSubmitBtn" type="submit" class="w-full bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest text-sm hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition flex items-center justify-center gap-2">SIGN IN <i class="ri-arrow-right-line"></i></button>
+
+        <p class="text-center text-xs font-medium text-[#8491A7] pt-3">
+          <span id="authToggleLabel">No account?</span> <a href="#" id="toggleAuthMode" class="font-black text-[#00A8E8] underline">Create one — start owning.</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- HOME VIEW (HIDDEN BY DEFAULT UNTIL AUTHENTICATED) -->
+<div id="view-home" class="view hidden">
+  <!-- HERO -->
+  <section class="max-w-[1280px] mx-auto px-4 lg:px-4">
+    <div class="bg-[#0B1020] rounded-[32px] lg:rounded-[40px] border border-white/10 overflow-hidden relative shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+      <div class="grid lg:grid-cols-12 gap-0">
+        <!-- Left -->
+        <div class="lg:col-span-7 p-7 sm:p-10 lg:p-12 pb-8 relative">
+          <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 py-1.5 mb-6">
+            <span class="w-2 h-2 rounded-full bg-[#00A8E8] animate-pulse"></span>
+            <span class="text-[10px] font-black tracking-[0.14em] text-white/90">DIGITAL MOVIE VAULT • PERMANENT OWNERSHIP</span>
+          </div>
+          <h1 class="hero-title">
+            <span class="block text-white">OWN YOUR</span>
+            <span class="block text-transparent bg-clip-text bg-gradient-to-r from-white via-[#C7D0E0] to-[#00A8E8]">CINEMA.</span>
+            <span class="block text-white">FOREVER.</span>
+          </h1>
+          <p class="mt-5 text-[15px] leading-6 text-[#C7D0E0] max-w-[520px] font-medium">Discover films from TMDB, purchase permanent licenses, or rent titles for 48 hours. Always in 4K HDR in your private collection.</p>
+          <div class="flex flex-wrap gap-3 mt-8">
+            <button id="ctaExplore" class="bg-[#1677FF] text-white px-7 py-4 rounded-full font-black text-xs tracking-[0.14em] flex items-center gap-3 hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition">EXPLORE COLLECTION <span class="w-7 h-7 rounded-full bg-white text-[#1677FF] grid place-items-center"><i class="ri-arrow-right-line"></i></span></button>
+            <button id="showreelBtn" class="px-6 py-4 rounded-full font-black text-xs tracking-[0.14em] border border-white/15 bg-white/5 text-white hover:bg-white/10 transition flex items-center gap-2"><i class="ri-play-circle-line text-lg text-[#00A8E8]"></i> CATALOG HIGHLIGHTS</button>
+          </div>
+          <div class="grid grid-cols-3 gap-6 mt-10 border-t border-white/10 pt-7 max-w-[520px]">
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-white">4K HDR</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">DOLBY ATMOS</div>
+            </div>
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-[#00A8E8]">TMDB</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">METADATA CATALOG</div>
+            </div>
+            <div>
+              <div class="font-black text-2xl tracking-tighter text-[#1677FF]">∞</div>
+              <div class="text-[10px] font-bold tracking-[0.12em] text-[#8491A7]">FOREVER ACCESS</div>
+            </div>
+          </div>
+        </div>
+        <!-- Right Dynamic TMDB Hero Artwork Collection Stack (3-Card Rotation Stack) -->
+        <div class="lg:col-span-5 bg-[#05070D] relative min-h-[480px] lg:min-h-[580px] overflow-hidden p-6 lg:p-8 border-l border-white/5 flex flex-col items-center justify-center">
+          <div class="absolute top-6 right-6 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3.5 py-1.5 rounded-full flex items-center gap-2 shadow-[0_0_15px_rgba(22,119,255,0.4)] z-20"><span class="w-2 h-2 bg-[#00A8E8] rounded-full animate-pulse"></span> TMDB COLLECTION</div>
+          <div id="heroPosterStack" class="relative z-10 w-full max-w-[340px] flex items-center justify-center gap-3">
+            <!-- Dynamic TMDB Carousel Cards inserted cleanly by JS -->
+          </div>
+        </div>
+      </div>
+      <!-- marquee -->
+      <div class="bg-[#10182B] border-t border-white/10 py-2.5 overflow-hidden text-[#00A8E8]">
+        <div class="flex whitespace-nowrap marquee">
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+          <span class="mx-6 font-black tracking-[0.16em] text-xs">PERMANENT LICENSES • 48H RENTALS • 4K HDR • DOLBY ATMOS • TMDB CATALOG • </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FILTER / GENRES -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-8">
+    <div class="flex flex-wrap items-center gap-3 justify-between">
+      <div class="flex items-center gap-2 overflow-auto no-scrollbar py-1">
+        <button data-genre="All" class="genre-btn active bg-[#1677FF] text-white px-5 py-2.5 rounded-full text-xs font-black tracking-widest shadow-[0_4px_16px_rgba(22,119,255,0.3)]">ALL</button>
+        <button data-genre="Sci-Fi" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">SCI-FI</button>
+        <button data-genre="Action" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">ACTION</button>
+        <button data-genre="Drama" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">DRAMA</button>
+        <button data-genre="Animation" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">ANIMATION</button>
+        <button data-genre="Crime" class="genre-btn bg-[#10182B] text-[#C7D0E0] border border-white/10 px-5 py-2.5 rounded-full text-xs font-black tracking-widest hover:bg-white/10 hover:text-white transition">CRIME</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold text-[#8491A7] hidden sm:inline">SORT BY</span>
+        <select id="sortSelect" class="bg-[#10182B] text-white border border-white/10 rounded-full px-4 py-2 text-xs font-bold outline-none">
+          <option value="featured">FEATURED</option>
+          <option value="rating">RATING</option>
+          <option value="price-low">PRICE: LOW TO HIGH</option>
+          <option value="price-high">PRICE: HIGH TO LOW</option>
+          <option value="year">YEAR</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURED / TRENDING ROW -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-white">TMDB FEATURED TITLES</h2>
+        <p class="text-xs font-medium text-[#8491A7] mt-0.5">Popular movies available for purchase or rental</p>
+      </div>
+      <div class="flex gap-2">
+        <button id="scrollLeft" class="w-9 h-9 rounded-full bg-[#10182B] text-white border border-white/10 grid place-items-center hover:bg-white/10 transition"><i class="ri-arrow-left-s-line"></i></button>
+        <button id="scrollRight" class="w-9 h-9 rounded-full bg-[#10182B] text-white border border-white/10 grid place-items-center hover:bg-white/10 transition"><i class="ri-arrow-right-s-line"></i></button>
+      </div>
+    </div>
+    <div id="featuredRow" class="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar snap-x py-2"></div>
+  </section>
+
+  <!-- MAIN CATALOG GRID -->
+  <section class="max-w-[1280px] mx-auto px-4 mt-12 mb-16">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl sm:text-3xl font-black tracking-tighter text-white">BROWSE MOVIE CATALOG</h2>
+    </div>
+    <div id="movieGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6"></div>
+  </section>
+</div>
+
+<!-- SEPARATE MOVIE DETAILS PAGE VIEW (NAVIGATED FROM SEARCH SUGGESTIONS OR DEEP LINK) -->
+<div id="view-movie-detail" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="mb-6">
+    <button onclick="navigate('home')" class="bg-white/5 border border-white/10 hover:bg-white/10 text-white text-xs font-black tracking-widest px-5 py-2.5 rounded-full inline-flex items-center gap-2 transition">
+      <i class="ri-arrow-left-line text-sm text-[#00A8E8]"></i> BACK TO DISCOVER
+    </button>
+  </div>
+  <div id="movieDetailPageContent" class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden shadow-2xl text-white">
+    <!-- Content rendered dynamically by openMovieDetailsPage(movieId) -->
+  </div>
+</div>
+
+<!-- LIBRARY VIEW -->
+<div id="view-library" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 p-6 sm:p-8 mt-2 text-white shadow-2xl">
+    <div class="flex flex-wrap items-start justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 bg-[#1677FF]/15 border border-[#00A8E8]/30 text-[#00A8E8] px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest mb-3"><span class="w-2 h-2 bg-[#00A8E8] rounded-full"></span> YOUR PRIVATE MOVIE VAULT</div>
+        <h2 class="text-4xl sm:text-5xl font-black tracking-tighter text-white">LIBRARY</h2>
+        <p class="text-sm text-[#C7D0E0] font-medium mt-2">Digital movie licenses you own or rent. View external watch provider options.</p>
+      </div>
+      <div class="flex gap-3 w-full sm:w-auto">
+        <div class="flex-1 sm:flex-none bg-[#10182B] rounded-full px-4 py-3 flex items-center gap-2 border border-white/10">
+          <i class="ri-search-line text-[#8491A7]"></i>
+          <input id="librarySearch" placeholder="Search library..." class="bg-transparent outline-none text-sm font-medium w-full sm:w-[180px] text-white placeholder:text-[#8491A7]">
+        </div>
+        <select id="libraryFilter" class="bg-[#10182B] text-white rounded-full px-5 py-3 text-xs font-black tracking-widest border border-white/10 outline-none">
+          <option value="RECENTLY ADDED">RECENTLY ADDED</option>
+          <option value="A-Z">A-Z</option>
+          <option value="YEAR">YEAR</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-8">
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">OWNED LICENSES</div>
+        <div id="statOwned" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        <div class="text-xs font-medium text-[#8491A7]">Permanent licenses</div>
+      </div>
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">ACTIVE RENTALS</div>
+        <div id="statLicenses" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        <div class="text-xs font-medium text-[#8491A7]">48-Hour rentals</div>
+      </div>
+      <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+        <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">TOTAL SPENT</div>
+        <div id="statSpent" class="text-3xl font-black tracking-tighter mt-1 text-white">₹0.00</div>
+        <div class="text-xs font-medium text-[#8491A7]">Vault investments</div>
+      </div>
+    </div>
+    <div id="libraryGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mt-8"></div>
+    <div id="libraryEmpty" class="text-center py-20">
+      <div class="w-20 h-20 rounded-full bg-[#10182B] border border-white/10 grid place-items-center mx-auto text-3xl text-[#1677FF]">◐</div>
+      <h3 class="font-black text-xl tracking-tighter mt-4 text-white">Your vault is empty</h3>
+      <p class="text-sm text-[#8491A7] max-w-[420px] mx-auto mt-2 font-medium">When you purchase or rent movies they will appear here. Start building your digital collection.</p>
+      <button data-view="home" class="nav-btn mt-6 bg-[#1677FF] text-white px-7 py-3 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">DISCOVER FILMS</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART VIEW -->
+<div id="view-cart" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="grid lg:grid-cols-12 gap-6 mt-2">
+    <div class="lg:col-span-8 bg-[#0B1020] rounded-[32px] border border-white/10 p-6 sm:p-8 text-white shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h2 class="text-3xl sm:text-4xl font-black tracking-tighter text-white">YOUR CART</h2>
+        <span id="cartCountLabel" class="bg-[#10182B] border border-white/10 px-3.5 py-1.5 rounded-full text-xs font-black text-[#00A8E8]">0 ITEMS</span>
+      </div>
+      <p class="text-sm text-[#C7D0E0] font-medium mt-2">Digital movie licenses (Permanent purchase or 48-Hour rental).</p>
+      <div id="cartList" class="mt-8 space-y-4"></div>
+      <div id="cartEmpty" class="text-center py-16">
+        <div class="w-16 h-16 rounded-full bg-[#10182B] border border-white/10 grid place-items-center mx-auto text-2xl text-[#1677FF]"><i class="ri-shopping-bag-line"></i></div>
+        <h3 class="font-black text-lg mt-4 text-white">Cart is empty</h3>
+        <p class="text-sm text-[#8491A7] font-medium">Add movies you love to your cart.</p>
+        <button data-view="home" class="nav-btn mt-6 bg-[#1677FF] text-white px-6 py-3 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">BROWSE STORE</button>
+      </div>
+      <div class="mt-6 flex items-center gap-2 text-xs font-bold text-[#8491A7]"><i class="ri-shield-check-line text-[#00A8E8]"></i> Secure CineVerse checkout • Instant digital activation</div>
+    </div>
+    <div class="lg:col-span-4">
+      <div class="bg-[#10182B] border border-white/10 rounded-[32px] p-6 sm:p-7 text-white sticky top-[88px] shadow-2xl">
+        <h3 class="font-black text-xl tracking-tighter">ORDER SUMMARY</h3>
+        <div class="mt-6 space-y-3 text-sm">
+          <div class="flex justify-between font-medium text-[#C7D0E0]"><span>Subtotal</span><span id="sumSubtotal" class="text-white font-black">₹0.00</span></div>
+          <div class="flex justify-between font-medium text-[#C7D0E0]"><span>Tax (8%)</span><span id="sumTax" class="text-white font-black">₹0.00</span></div>
+          <div class="h-px bg-white/10 my-4"></div>
+          <div class="flex justify-between items-center"><span class="font-black tracking-widest text-xs">TOTAL</span><span id="sumTotal" class="text-3xl font-black tracking-tighter text-[#00A8E8]">₹0.00</span></div>
+        </div>
+        <div class="mt-5 space-y-2">
+          <label class="block text-[11px] font-black tracking-widest text-[#8491A7]">PAYMENT METHOD</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer text-xs font-bold">
+              <input type="radio" name="payMethod" value="COD" checked class="accent-[#1677FF]"> Cash / COD
+            </label>
+            <label class="flex items-center gap-2 bg-white/5 border border-white/10 p-3 rounded-xl cursor-pointer text-xs font-bold">
+              <input type="radio" name="payMethod" value="UPI" class="accent-[#1677FF]"> Razorpay UPI
+            </label>
+          </div>
+        </div>
+        <button id="checkoutBtn" class="mt-6 w-full bg-[#1677FF] text-white py-4 rounded-full font-black tracking-widest text-sm hover:bg-[#3D8BFF] hover:shadow-[0_0_25px_rgba(22,119,255,0.4)] transition flex items-center justify-center gap-2">PURCHASE & OWN <i class="ri-lock-2-line"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE VIEW (UNCROPPED UNIVERSAL USER SILHOUETTE AVATAR & FULL VISIBILITY) -->
+<div id="view-profile" class="view hidden max-w-[1280px] mx-auto px-4">
+  <div class="bg-[#0B1020] rounded-[32px] border border-white/10 overflow-hidden mt-2 text-white shadow-2xl">
+    <div class="h-44 sm:h-52 bg-[#05070D] relative p-6 flex items-end">
+      <div class="flex items-center gap-5 z-10">
+        <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-[#00A8E8] bg-[#10182B] p-1 shadow-2xl overflow-hidden shrink-0">
+          <img id="profileAvatar" src="" style="object-fit: contain;" class="w-full h-full rounded-full">
+        </div>
+        <div>
+          <h2 id="profileName" class="text-white font-black text-2xl sm:text-3xl tracking-tighter">USER ACCOUNT</h2>
+          <p id="profileSub" class="text-[#8491A7] text-xs font-bold tracking-widest mt-1">MEMBER SINCE 2026</p>
+        </div>
+      </div>
+    </div>
+    <div class="p-6 sm:p-8 pt-8">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">FILMS OWNED</div>
+          <div id="profileOwned" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">ACTIVE RENTALS</div>
+          <div id="profileLicenses" class="text-3xl font-black tracking-tighter mt-1 text-white">0</div>
+        </div>
+        <div class="bg-[#10182B] rounded-2xl p-5 border border-white/10 col-span-2 sm:col-span-1">
+          <div class="text-[11px] font-black tracking-widest text-[#00A8E8]">LIFETIME SPENT</div>
+          <div id="profileSpent" class="text-3xl font-black tracking-tighter mt-1 text-white">₹0.00</div>
+        </div>
+      </div>
+
+      <div class="mt-8">
+        <h3 class="font-black tracking-tighter text-xl text-white">ORDER & LICENSE HISTORY</h3>
+        <div id="purchaseHistory" class="mt-4 space-y-3"></div>
+        <div id="noHistory" class="bg-[#10182B] border border-dashed border-white/10 rounded-2xl p-8 text-center mt-4">
+          <div class="text-sm font-bold text-[#8491A7]">No order history yet. Your transactions will appear here.</div>
+        </div>
+      </div>
+
+      <div class="mt-8 pt-6 border-t border-white/10 flex justify-end">
+        <button id="logoutBtn" class="bg-red-500/20 text-red-400 border border-red-500/30 px-6 py-3 rounded-full font-black text-xs tracking-widest hover:bg-red-500 hover:text-white transition">LOG OUT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- MOVIE DETAILS MODAL -->
+<div id="movieModal" class="fixed inset-0 z-[100000] flex items-center justify-center p-4 hidden">
+  <div id="modalBackdrop" class="absolute inset-0 bg-[#05070D]/90 backdrop-blur-md"></div>
+  <div class="relative w-full max-w-4xl bg-[#0B1020] rounded-[32px] border border-white/15 overflow-hidden shadow-2xl text-white z-10 max-h-[90vh] overflow-y-auto">
+    <button id="closeModal" class="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 text-white border border-white/20 grid place-items-center hover:bg-white hover:text-black transition"><i class="ri-close-line text-xl"></i></button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer id="footer" class="mt-16 bg-[#0B1020] text-white border-t border-white/10 py-10 px-6 text-center text-xs font-bold text-[#8491A7]">
+  <div class="max-w-[1280px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-xs">◐</div>
+      <span class="font-black tracking-tighter text-white text-sm">CINEVERSE</span>
+    </div>
+    <div>CineVerse Digital License Platform • Powered by TMDB Metadata API</div>
+    <div>© 2026 CineVerse Inc. All rights reserved.</div>
+  </div>
+</footer>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
