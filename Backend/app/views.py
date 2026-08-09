@@ -242,9 +242,9 @@ def update_quantity(request, id):
 def login_user(request):
     if request.method == "POST":
         try:
-            from django.contrib.auth.hashers import check_password
+            from django.contrib.auth.hashers import check_password, make_password
             data = json.loads(request.body)
-            email = (data.get('email') or '').strip()
+            email = (data.get('email') or '').strip().lower()
             password = data.get('password') or ''
             
             with connection.cursor() as cursor:
@@ -260,8 +260,24 @@ def login_user(request):
                     user_dict = dict(zip(col_names, user))
                     stored_pw = user_dict.get('password', '')
 
-                    pw_valid = check_password(password, stored_pw) if (stored_pw and (stored_pw.startswith('pbkdf2_') or stored_pw.startswith('bcrypt'))) else (stored_pw == password)
-                    
+                    pw_valid = False
+                    if stored_pw:
+                        try:
+                            pw_valid = check_password(password, stored_pw)
+                        except Exception:
+                            pw_valid = False
+
+                        if not pw_valid and stored_pw == password:
+                            pw_valid = True
+                            try:
+                                hashed_pw = make_password(password)
+                                cursor.execute(
+                                    "UPDATE users SET password = %s WHERE user_id = %s",
+                                    [hashed_pw, user_dict['user_id']]
+                                )
+                            except Exception as update_err:
+                                print("Legacy password upgrade notice:", update_err)
+
                     if pw_valid:
                         cursor.execute(
                             "UPDATE users SET is_logged_in = TRUE WHERE user_id = %s",
@@ -291,7 +307,7 @@ def signup_user(request):
             from django.contrib.auth.hashers import make_password
             data = json.loads(request.body)
             name = (data.get('name') or '').strip()
-            email = (data.get('email') or '').strip()
+            email = (data.get('email') or '').strip().lower()
             password = data.get('password') or ''
             
             if not name or not email or not password:

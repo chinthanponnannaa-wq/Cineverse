@@ -110,8 +110,8 @@ export function toggleAuthModeUI() {
 
 export async function handleAuthSubmit(e, onSuccess) {
   e.preventDefault();
-  const email = document.getElementById('emailInput').value.trim();
-  const pass = document.getElementById('passwordInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim().toLowerCase();
+  const pass = document.getElementById('passwordInput').value;
   const name = document.getElementById('nameInput')?.value.trim();
 
   let valid = true;
