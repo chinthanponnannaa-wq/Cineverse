@@ -1,0 +1,26 @@
+/* CineVerse Stylesheet — Extracted Stage 1 */
+
+*{font-family:'Inter',sans-serif}
+h1,h2,.display{font-family:'Syne',sans-serif;letter-spacing:-0.04em;line-height:0.88}
+.mono{font-family:'JetBrains Mono',monospace}
+.glass{backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.glass-panel{background:rgba(16,24,43,0.8);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.1)}
+.hero-title{font-weight:800;font-size:clamp(44px,9vw,110px);line-height:0.88;letter-spacing:-0.05em}
+.movie-card{transition:all 0.4s cubic-bezier(0.16,1,0.3,1)}
+.movie-card:hover{transform:translateY(-8px)}
+.reveal{opacity:0;transform:translateY(24px);transition:all 0.8s cubic-bezier(0.16,1,0.3,1)}
+.reveal.in{opacity:1;transform:translateY(0)}
+.shimmer{position:relative;overflow:hidden}
+.shimmer::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(22,119,255,0.2),transparent);transform:translateX(-100%);transition:transform 0.7s}
+.shimmer:hover::after{transform:translateX(100%)}
+.wave span{display:inline-block;width:3px;height:16px;background:#00A8E8;border-radius:99px;animation:wave 0.9s infinite ease-in-out}
+.wave span:nth-child(2){animation-delay:0.1s}
+.wave span:nth-child(3){animation-delay:0.2s}
+.wave span:nth-child(4){animation-delay:0.3s}
+.wave span:nth-child(5){animation-delay:0.15s}
+@keyframes wave{0%,100%{height:10px}50%{height:28px}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-10px) rotate(var(--r))}}
+.marquee{animation:marquee 24s linear infinite}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{scrollbar-width:none}
