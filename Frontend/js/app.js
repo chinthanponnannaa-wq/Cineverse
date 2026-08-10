@@ -1,8 +1,10 @@
 // Frontend/js/app.js — Central Application Entry Point
 
+console.log("CINEVERSE MODULE EVALUATION START");
+
 import { showToast } from './utils.js';
 import {
-  fetchMoviesApi, fetchUserOrdersApi, fetchGuestCartApi
+  fetchMoviesApi, fetchUserOrdersApi, fetchGuestCartApi, apiLogin
 } from './api.js';
 import {
   getCurrentUser, getIsLoggedIn, getSessionId, saveAuthState,
@@ -11,36 +13,62 @@ import {
 } from './auth.js';
 import {
   getMovies, setMovies, getFavorites, renderMoviesCatalog, startHeroTimer,
-  setActiveGenre, setSortBy, closeModal
+  setActiveGenre, setSortBy, closeModal, openModal, fetchAndRenderCatalog, renderMoviesCatalogError
 } from './movies.js';
 import {
-  setupSearchListeners, openMovieDetailsPage
+  setupSearchListeners, openMovieDetailsPage, closeSearchDropdown
 } from './search.js';
-import {
-  getCart, setCart, updateCartCounts, renderCartList, handleCheckout
-} from './cart.js';
-import {
-  setLibrary, setUserOrders, renderLibrary
-} from './library.js';
+import { getCart, setCart, updateCartCounts, renderCartList, handleCheckout, addToCart, removeFromCart } from './cart.js';
+import { getLibrary, setLibrary, setUserOrders, renderLibrary, setLibraryFetchError } from './library.js';
 import { renderProfile } from './profile.js';
-import {
-  initVoiceRecognition, toggleVoiceRecognition, processVoiceCommand
-} from './voice.js';
+import { initVoiceRecognition, toggleVoiceRecognition, processVoiceCommand } from './voice.js';
+import { apiCreateOrder, apiVerifyPayment } from './api.js';
+
+// Expose global window bindings for UI events and automation
+window.getCurrentUser = getCurrentUser;
+window.setCurrentUser = setCurrentUser;
+window.getIsLoggedIn = getIsLoggedIn;
+window.setIsLoggedIn = setIsLoggedIn;
+window.saveAuthState = saveAuthState;
+window.apiLogin = apiLogin;
+window.fetchUserOrdersData = fetchUserOrdersData;
+window.fetchMoviesData = fetchMoviesData;
+window.fetchAndRenderCatalog = fetchAndRenderCatalog;
+window.renderMoviesCatalogError = () => renderMoviesCatalogError(updateCounts);
+window.setActiveGenre = (g) => setActiveGenre(g);
+window.setSortBy = (s) => setSortBy(s);
+window.renderMoviesCatalog = () => renderMoviesCatalog(updateCounts);
+window.openModal = (m) => openModal(m, updateCounts);
+window.getMovies = getMovies;
+window.getCart = getCart;
+window.getLibrary = getLibrary;
+window.addToCart = async (m, type) => { await addToCart(m, type, updateCounts); };
+window.handleCheckout = () => handleCheckout(navigate, updateCounts, renderLibrary);
+window.navigate = navigate;
+window.updateCounts = updateCounts;
+window.setLibraryFetchError = setLibraryFetchError;
+window.renderLibrary = renderLibrary;
+window.apiCreateOrder = apiCreateOrder;
+window.apiVerifyPayment = apiVerifyPayment;
+window.handleLogout = (cb) => handleLogout(cb || (() => { setCart([]); setLibrary([]); setUserOrders([]); getFavorites().clear(); updateCounts(); navigate('login'); }));
+window.openMovieDetailsPage = (m) => openMovieDetailsPage(m, navigate, updateCounts);
+window.closeSearchDropdown = closeSearchDropdown;
 
 export async function loadComponents() {
+  console.log("LOAD COMPONENTS START");
   const appContainer = document.getElementById('app');
   if (!appContainer) return;
 
   const componentFiles = [
-    'components/navbar.html',
-    'components/login.html',
-    'components/home.html',
-    'components/movie-detail.html',
-    'components/library.html',
-    'components/cart.html',
-    'components/profile.html',
-    'components/modals.html',
-    'components/footer.html'
+    './components/navbar.html',
+    './components/login.html',
+    './components/home.html',
+    './components/movie-detail.html',
+    './components/library.html',
+    './components/cart.html',
+    './components/profile.html',
+    './components/modals.html',
+    './components/footer.html'
   ];
 
   try {
@@ -65,8 +93,21 @@ export async function loadComponents() {
       ${htmlChunks[7]}
       ${htmlChunks[8]}
     `;
+    console.log("LOAD COMPONENTS COMPLETE");
   } catch (err) {
     console.error("Error loading CineVerse HTML components:", err);
+    if (appContainer) {
+      appContainer.innerHTML = `
+        <div class="min-h-screen grid place-items-center bg-[#05070D] text-white p-6 text-center">
+          <div class="max-w-md bg-[#0B1020] p-8 rounded-3xl border border-white/10 shadow-2xl">
+            <div class="w-12 h-12 rounded-full bg-[#1677FF] text-white grid place-items-center text-2xl font-black mx-auto mb-4">◐</div>
+            <h2 class="text-2xl font-black tracking-tight text-white mb-2">CINEVERSE</h2>
+            <p class="text-sm text-[#C7D0E0] mb-6">Unable to load application components. Please ensure the server is serving Frontend at http://127.0.0.1:5500.</p>
+            <button onclick="window.location.reload()" class="bg-[#1677FF] text-white px-6 py-3 rounded-full text-xs font-black tracking-widest hover:bg-[#3D8BFF] transition">RELOAD CINEVERSE</button>
+          </div>
+        </div>
+      `;
+    }
   }
 }
 
@@ -115,6 +156,10 @@ export function navigate(view) {
     }
   });
 
+  if (view === 'library' || view === 'profile') {
+    fetchUserOrdersData();
+  }
+
   if (view === 'home' && location.hash.startsWith('#movie/')) {
     history.pushState("", document.title, window.location.pathname + window.location.search);
   }
@@ -149,31 +194,13 @@ async function fetchUserOrdersData() {
   try {
     const orderData = await fetchUserOrdersApi(currentUser.user_id);
     setUserOrders(orderData);
-
-    const movies = getMovies();
-    const ownedMap = new Map();
-    orderData.forEach(ord => {
-      const items = ord.items || [];
-      items.forEach(it => {
-        const mId = it.movie_id || it.id;
-        const foundMovie = movies.find(x => x.id === mId) || {
-          id: mId,
-          title: it.name || it.title || 'Purchased Film',
-          price: parseFloat(it.price || 0),
-          genre: 'Cinema',
-          year: 2024,
-          rating: 8.0,
-          poster: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="400" height="600" fill="%230b1020"/><text x="200" y="300" font-family="sans-serif" font-size="20" fill="%23fff" text-anchor="middle">CINEVERSE</text></svg>')}`
-        };
-        ownedMap.set(mId, foundMovie);
-      });
-    });
-    setLibrary(Array.from(ownedMap.values()));
     saveAuthState();
     renderLibrary();
     updateCounts();
   } catch (err) {
     console.error("Error fetching user orders:", err);
+    setLibraryFetchError(true);
+    renderLibrary();
   }
 }
 
@@ -208,16 +235,23 @@ function wireEventListeners() {
     if (m) { m.classList.toggle('hidden'); m.classList.toggle('flex'); }
   });
 
-  document.querySelectorAll('.genre-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.genre-btn').forEach(b => b.addEventListener('click', async () => {
     document.querySelectorAll('.genre-btn').forEach(x => { x.classList.remove('active', 'bg-[#1677FF]', 'text-white'); x.classList.add('bg-[#10182B]', 'text-[#C7D0E0]', 'border', 'border-white/10'); });
     b.classList.add('active', 'bg-[#1677FF]', 'text-white'); b.classList.remove('bg-[#10182B]', 'border-white/10');
-    setActiveGenre(b.dataset.genre);
-    renderMoviesCatalog(updateCounts);
+    setActiveGenre(b.dataset.genre || 'All');
+    await fetchAndRenderCatalog({ append: false, onUpdateCounts: updateCounts });
   }));
 
-  document.getElementById('sortSelect')?.addEventListener('change', e => {
+  document.getElementById('sortSelect')?.addEventListener('change', async e => {
     setSortBy(e.target.value);
-    renderMoviesCatalog(updateCounts);
+    await fetchAndRenderCatalog({ append: false, onUpdateCounts: updateCounts });
+  });
+
+  document.getElementById('loadMoreBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('loadMoreBtn');
+    if (btn) btn.innerHTML = 'LOADING MOVIES... <i class="ri-loader-4-line animate-spin"></i>';
+    await fetchAndRenderCatalog({ append: true, onUpdateCounts: updateCounts });
+    if (btn) btn.innerHTML = 'LOAD MORE MOVIES <i class="ri-arrow-down-line group-hover:translate-y-1 transition"></i>';
   });
 
   document.getElementById('scrollLeft')?.addEventListener('click', () => document.getElementById('featuredRow')?.scrollBy({ left: -320, behavior: 'smooth' }));
@@ -290,33 +324,38 @@ function wireEventListeners() {
 }
 
 export async function initApp() {
+  console.log("INIT APP START");
   await loadComponents();
   wireEventListeners();
   startHeroTimer();
-  await fetchMoviesData();
 
   const isLoggedIn = getIsLoggedIn();
   const currentUser = getCurrentUser();
 
-  if (isLoggedIn && currentUser) {
-    await fetchUserOrdersData();
-    updateCounts();
-    navigate('home');
-  } else {
-    localStorage.removeItem('cv_logged');
-    localStorage.removeItem('cv_user');
-    setCurrentUser(null);
-    setIsLoggedIn(false);
-    await fetchGuestCartData();
-    updateCounts();
-    navigate('login');
+  // Immediately render the view shell and counts so page UI displays instantly
+  updateCounts();
+  const targetView = (isLoggedIn && currentUser && currentUser.user_id) ? 'home' : 'login';
+  console.log("NAVIGATING TO INITIAL VIEW:", targetView);
+  navigate(targetView);
+
+  // Fetch remote data safely without blocking initial view transition
+  try {
+    if (isLoggedIn && currentUser && currentUser.user_id) {
+      await Promise.all([fetchMoviesData(), fetchUserOrdersData()]);
+    } else {
+      await Promise.all([fetchMoviesData(), fetchGuestCartData()]);
+    }
+  } catch (err) {
+    console.error("Data fetch error during app initialization:", err);
   }
 
+  updateCounts();
   renderCartList(updateCounts, () => renderMoviesCatalog(updateCounts));
   renderLibrary();
 
   const obs = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }), { threshold: 0.1 });
   document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  console.log("INIT APP COMPLETE");
 }
 
 // Auto-boot application on DOMContentLoaded

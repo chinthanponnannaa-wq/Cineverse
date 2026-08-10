@@ -7,13 +7,21 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.2.0/remixicon.min.css" rel="stylesheet">
-<script type="module" src="js/app.js"></script>
-<link rel="stylesheet" href="css/styles.css">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script type="module" src="./js/app.js"></script>
+<link rel="stylesheet" href="./css/styles.css">
 </head>
 <body class="bg-[#05070D] text-[#FFFFFF] antialiased overflow-x-hidden selection:bg-[#1677FF] selection:text-white">
 
 <!-- CINEVERSE ROOT APP CONTAINER -->
-<div id="app"></div>
+<div id="app">
+  <div class="min-h-screen grid place-items-center bg-[#05070D] text-white">
+    <div class="flex flex-col items-center gap-4">
+      <div class="w-12 h-12 rounded-full bg-[#1677FF] text-white grid place-items-center font-black text-2xl shadow-[0_0_30px_rgba(22,119,255,0.6)] animate-pulse">◐</div>
+      <span class="font-black text-2xl tracking-tighter text-white">CINEVERSE</span>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

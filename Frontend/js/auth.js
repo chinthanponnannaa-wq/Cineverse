@@ -132,37 +132,56 @@ export async function handleAuthSubmit(e, onSuccess) {
 
   if (!valid) return;
 
+  const submitBtn = document.getElementById('authSubmitBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = (authMode === 'signup' ? 'CREATING ACCOUNT... ' : 'SIGNING IN... ') + '<i class="ri-loader-4-line animate-spin"></i>';
+  }
+
+  const resetBtn = () => {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = authMode === 'signup' ? 'CREATE ACCOUNT <i class="ri-arrow-right-line"></i>' : 'SIGN IN <i class="ri-arrow-right-line"></i>';
+    }
+  };
+
   if (authMode === 'signup') {
     try {
       const data = await apiSignup(name, email, pass);
-      if (data.success) {
+      if (data && data.success) {
         currentUser = data.user;
         isLoggedIn = true;
         saveAuthState();
         await transferGuestCartToUser(sessionId);
         showToast('Account created — Welcome ' + currentUser.name + ' ✓');
+        resetBtn();
         if (onSuccess) await onSuccess();
       } else {
-        showToast(data.error || 'Signup failed');
+        showToast(data?.error || 'Signup failed');
+        resetBtn();
       }
     } catch (err) {
       showToast('Network error during signup');
+      resetBtn();
     }
   } else {
     try {
       const data = await apiLogin(email, pass);
-      if (data.success) {
+      if (data && data.success) {
         currentUser = data.user;
         isLoggedIn = true;
         saveAuthState();
         await transferGuestCartToUser(sessionId);
         showToast('Welcome back, ' + currentUser.name + ' ✓');
+        resetBtn();
         if (onSuccess) await onSuccess();
       } else {
-        showToast(data.error || 'Invalid email or password');
+        showToast(data?.error || 'Invalid email or password');
+        resetBtn();
       }
     } catch (err) {
-      showToast('Network error during login');
+      showToast('Network error during sign in');
+      resetBtn();
     }
   }
 }

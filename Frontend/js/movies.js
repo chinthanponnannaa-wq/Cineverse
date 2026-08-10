@@ -6,13 +6,23 @@ import { getCart, addToCart } from './cart.js';
 import { getLibrary } from './library.js';
 
 let movies = [];
+let loadedCatalogMovies = [];
+let featuredMovies = [];
+let currentPage = 1;
+const pageSize = 24;
+let hasNextPage = true;
+let totalMovies = 0;
 let favorites = new Set(JSON.parse(localStorage.getItem('cv_favs') || '[]'));
 let activeGenre = 'All';
 let sortBy = 'featured';
 let heroCarouselIndex = 0;
 
-export function getMovies() { return movies; }
-export function setMovies(m) { movies = m; }
+export function getMovies() { return loadedCatalogMovies.length > 0 ? loadedCatalogMovies : movies; }
+export function getFeaturedMovies() { return featuredMovies; }
+export function setMovies(m) { 
+  movies = Array.isArray(m) ? m : (m && Array.isArray(m.movies) ? m.movies : []); 
+  if (!loadedCatalogMovies.length) loadedCatalogMovies = [...movies]; 
+}
 
 export function getFavorites() { return favorites; }
 export function getActiveGenre() { return activeGenre; }
@@ -39,7 +49,7 @@ export function movieCard(m) {
       <div class="absolute inset-0 bg-gradient-to-t from-[#05070D]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition"></div>
       <div class="absolute top-3 left-3 flex items-center gap-1.5">
         <span class="bg-black/70 backdrop-blur border border-white/10 text-white text-[10px] font-black px-2.5 py-1 rounded-full">${m.year || 2024}</span>
-        <span class="bg-[#1677FF] text-white text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1"><i class="ri-star-fill text-[11px]"></i> ${m.rating}</span>
+        <span class="bg-[#F5C518] text-black text-[10px] font-black px-2 py-1 rounded-full flex items-center gap-1"><i class="ri-star-fill text-[11px]"></i> IMDb ${m.imdb_rating ? m.imdb_rating : 'NR'}</span>
       </div>
       <button class="fav-btn absolute top-3 right-3 w-8 h-8 rounded-full ${isFav ? 'bg-[#1677FF] text-white' : 'bg-black/60 text-white/80 backdrop-blur border border-white/10'} grid place-items-center hover:scale-110 transition" data-fav="${m.id}"><i class="${isFav ? 'ri-heart-3-fill' : 'ri-heart-3-line'}"></i></button>
       <div class="absolute bottom-3 left-3 right-3 flex gap-2 translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition duration-300">
@@ -60,26 +70,21 @@ export function movieCard(m) {
 }
 
 export function getFilteredMovies() {
-  let list = [...movies];
-  if (activeGenre !== 'All') {
-    list = list.filter(m => m.genre.toLowerCase() === activeGenre.toLowerCase());
-  }
-  if (sortBy === 'price-low') list.sort((a, b) => a.price - b.price);
-  if (sortBy === 'price-high') list.sort((a, b) => b.price - a.price);
-  if (sortBy === 'rating') list.sort((a, b) => b.rating - a.rating);
-  if (sortBy === 'year') list.sort((a, b) => (b.year || 2024) - (a.year || 2024));
-  return list;
+  return loadedCatalogMovies.length > 0 ? loadedCatalogMovies : movies;
 }
 
 export function renderHeroCollection() {
-  if (!movies || movies.length === 0) return;
+  const pool = (Array.isArray(loadedCatalogMovies) && loadedCatalogMovies.length > 0) 
+    ? loadedCatalogMovies 
+    : (Array.isArray(movies) ? movies : []);
+  if (!pool || pool.length === 0) return;
   const container = document.getElementById('heroPosterStack');
   if (!container) return;
 
-  const total = movies.length;
-  const m1 = movies[heroCarouselIndex % total];
-  const m2 = movies[(heroCarouselIndex + 1) % total];
-  const m3 = movies[(heroCarouselIndex + 2) % total];
+  const total = pool.length;
+  const m1 = pool[heroCarouselIndex % total];
+  const m2 = pool[(heroCarouselIndex + 1) % total];
+  const m3 = pool[(heroCarouselIndex + 2) % total];
 
   const p1 = resolvePoster(m1.poster, m1.title);
   const p2 = resolvePoster(m2.poster, m2.title);
@@ -101,7 +106,7 @@ export function renderHeroCollection() {
           <div class="font-black text-xs text-white truncate">${m2.title}</div>
           <div class="text-[9px] font-bold text-[#8491A7]">${m2.genre}</div>
         </div>
-        <span class="bg-[#1677FF] text-white text-[10px] font-black px-2 py-0.5 rounded-full">★ ${m2.rating}</span>
+        <span class="bg-[#F5C518] text-black text-[10px] font-black px-2 py-0.5 rounded-full">IMDb ${m2.imdb_rating ? m2.imdb_rating : 'NR'}</span>
       </div>
     </div>
     <div class="hidden sm:block w-[105px] shrink-0 rounded-2xl overflow-hidden border border-white/15 bg-[#10182B] shadow-lg rotate-[6deg] translate-y-3 transition duration-700">
@@ -111,10 +116,96 @@ export function renderHeroCollection() {
   `;
 }
 
+export async function fetchAndRenderCatalog({ append = false, onUpdateCounts = null } = {}) {
+  if (append) {
+    currentPage += 1;
+  } else {
+    currentPage = 1;
+    loadedCatalogMovies = [];
+  }
+
+  try {
+    const fetchPromises = [
+      fetchMoviesApi({
+        page: currentPage,
+        limit: pageSize,
+        genre: activeGenre,
+        sort: sortBy
+      })
+    ];
+
+    if (!featuredMovies.length || (!append && currentPage === 1)) {
+      fetchPromises.push(fetchMoviesApi({ page: 1, limit: 8, sort: 'featured' }));
+    }
+
+    const results = await Promise.all(fetchPromises);
+    const res = results[0];
+    if (results.length > 1) {
+      const resFeatured = results[1];
+      featuredMovies = Array.isArray(resFeatured) ? resFeatured : (resFeatured.movies || []);
+    }
+
+    const fetchedMovies = Array.isArray(res) ? res : (res.movies || []);
+    const pagination = res.pagination || { page: currentPage, limit: pageSize, total: fetchedMovies.length, has_next: false };
+
+    if (append) {
+      loadedCatalogMovies = [...loadedCatalogMovies, ...fetchedMovies];
+    } else {
+      loadedCatalogMovies = fetchedMovies;
+      setMovies(fetchedMovies);
+    }
+
+    totalMovies = pagination.total;
+    hasNextPage = pagination.has_next;
+
+    renderMoviesCatalog(onUpdateCounts);
+  } catch (err) {
+    console.warn("Catalog fetch error:", err);
+    if (append && currentPage > 1) {
+      currentPage -= 1;
+    }
+    if (append) {
+      showToast("Unable to load additional movies. Click Load More to try again.");
+      const btn = document.getElementById('loadMoreBtn');
+      if (btn) btn.innerHTML = 'RETRY LOADING MOVIES <i class="ri-refresh-line"></i>';
+    } else {
+      renderMoviesCatalogError(onUpdateCounts);
+    }
+  }
+}
+
+export function renderMoviesCatalogError(onUpdateCounts) {
+  const grid = document.getElementById('movieGrid');
+  if (grid) {
+    grid.innerHTML = `
+      <div class="col-span-full py-16 px-6 text-center bg-[#0B1020] rounded-[32px] border border-white/10 my-4 shadow-xl">
+        <div class="w-14 h-14 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 grid place-items-center text-2xl mx-auto mb-4">
+          <i class="ri-wifi-off-line"></i>
+        </div>
+        <h3 class="text-white text-xl font-black tracking-tight mb-2">Unable to Load Movies</h3>
+        <p class="text-[#8491A7] text-sm font-medium max-w-md mx-auto mb-6">
+          We encountered a connection issue fetching the catalog. Please check your network or server status.
+        </p>
+        <button id="retryCatalogBtn" class="bg-[#1677FF] text-white px-7 py-3 rounded-full text-xs font-black tracking-widest hover:bg-[#3D8BFF] transition inline-flex items-center gap-2">
+          TRY AGAIN <i class="ri-refresh-line"></i>
+        </button>
+      </div>
+    `;
+    document.getElementById('retryCatalogBtn')?.addEventListener('click', () => {
+      fetchAndRenderCatalog({ append: false, onUpdateCounts });
+    });
+  }
+
+  const loadMoreContainer = document.getElementById('loadMoreContainer');
+  if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
+}
+
 export function renderMoviesCatalog(onUpdateCounts) {
-  const filtered = getFilteredMovies();
-  const featured = filtered.filter(m => m.featured);
-  const gridList = filtered;
+  const gridList = Array.isArray(loadedCatalogMovies) && loadedCatalogMovies.length > 0 
+    ? loadedCatalogMovies 
+    : (Array.isArray(movies) ? movies : []);
+  const pool = (Array.isArray(movies) && movies.length > 0) ? movies : gridList;
+  const featured = (Array.isArray(featuredMovies) && featuredMovies.length > 0) ? featuredMovies.slice(0, 8) : pool.slice(0, 8);
 
   const fRow = document.getElementById('featuredRow');
   if (fRow) {
@@ -124,6 +215,11 @@ export function renderMoviesCatalog(onUpdateCounts) {
   const grid = document.getElementById('movieGrid');
   if (grid) {
     grid.innerHTML = gridList.map(m => movieCard(m)).join('') || `<div class="col-span-full text-center text-sm font-bold text-[#8491A7] py-10">No movies found in TMDB catalog.</div>`;
+  }
+
+  const loadMoreContainer = document.getElementById('loadMoreContainer');
+  if (loadMoreContainer) {
+    loadMoreContainer.classList.toggle('hidden', !hasNextPage);
   }
 
   renderHeroCollection();

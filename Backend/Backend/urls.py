@@ -37,5 +37,7 @@ urlpatterns = [
     path('session-cart/<str:session_id>/', views.get_session_cart),
     path('session-cart/clear/<str:session_id>/', views.clear_session_cart),
     path('tmdb-sync/', views.sync_tmdb_movies),
+    path('movies/search/', views.search_movies),
+    path('movies/<int:movie_id>/', views.get_single_movie),
     path('watch-providers/<str:tmdb_id>/', views.get_watch_providers),
 ] + static(settings.STATIC_URL, document_root=settings.BASE_DIR / 'app' / 'static')

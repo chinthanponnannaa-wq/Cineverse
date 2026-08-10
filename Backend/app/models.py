@@ -9,9 +9,14 @@ class Movies(models.Model):
     poster_image = models.CharField(max_length=255)
     is_available = models.IntegerField(default=1)
     rating = models.DecimalField(max_digits=2, decimal_places=1, blank=True, null=True)
+    imdb_rating = models.DecimalField(max_digits=2, decimal_places=1, blank=True, null=True)
     date_added = models.DateTimeField(auto_now_add=True)
     quantity = models.IntegerField(default=0)
     stock = models.IntegerField(default=0)
+    tmdb_id = models.CharField(max_length=50, blank=True, null=True)
+    imdb_id = models.CharField(max_length=20, blank=True, null=True)
+    rental_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    backdrop_image = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = False

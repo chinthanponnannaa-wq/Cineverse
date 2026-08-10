@@ -1,10 +1,10 @@
-// Frontend/js/search.js — Navbar Search & Separate Movie Details Page
-
-import { formatPrice, getNeutralPlaceholder, showToast } from './utils.js';
-import { fetchWatchProviders } from './api.js';
+import { formatPrice, getNeutralPlaceholder, resolvePoster, showToast, API_BASE_URL } from './utils.js';
+import { fetchWatchProviders, safeFetchJson, apiSearchMovies } from './api.js';
 import { getMovies, getFavorites, toggleFav } from './movies.js';
 import { getLibrary } from './library.js';
 import { getCart, addToCart } from './cart.js';
+
+const movieSearchCache = new Map();
 
 export function closeSearchDropdown() {
   const searchDropdown = document.getElementById('searchDropdown');
@@ -14,7 +14,7 @@ export function closeSearchDropdown() {
   }
 }
 
-export function handleSearchInput(e) {
+export async function handleSearchInput(e, navigateFn, onUpdateCounts) {
   const term = e.target.value.trim();
   const searchDropdown = document.getElementById('searchDropdown');
   const searchDropdownList = document.getElementById('searchDropdownList');
@@ -25,40 +25,101 @@ export function handleSearchInput(e) {
     return;
   }
 
+  // 1. Show local matches instantly
   const movies = getMovies();
-  const matches = movies.filter(m => m.title.toLowerCase().includes(term.toLowerCase()));
-  if (matches.length === 0) {
-    searchDropdownList.innerHTML = `<div class="p-3 text-center text-xs font-bold text-[#8491A7]">No movies found</div>`;
-  } else {
-    searchDropdownList.innerHTML = matches.map(m => {
-      const placeholder = getNeutralPlaceholder(m.title);
-      return `
-        <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 cursor-pointer transition search-item-row" data-movie-id="${m.id}">
-          <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-10 h-14 rounded-lg object-cover bg-[#05070D] shrink-0">
-          <div class="flex-1 min-w-0">
-            <div class="font-black text-xs text-white truncate">${m.title}</div>
-            <div class="text-[10px] font-bold text-[#8491A7] mt-0.5">${m.year || 2024} • ${m.genre}</div>
-          </div>
-          <span class="bg-[#1677FF]/20 text-[#00A8E8] border border-[#00A8E8]/30 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">★ ${m.rating}</span>
-        </div>
-      `;
-    }).join('');
+  let matches = movies.filter(m => m.title.toLowerCase().includes(term.toLowerCase()));
 
-    searchDropdownList.querySelectorAll('.search-item-row').forEach(row => {
-      row.addEventListener('click', () => {
-        const mId = row.dataset.movieId;
-        openMovieDetailsPage(mId);
-      });
-    });
+  if (matches.length > 0) {
+    matches.forEach(m => { if (m.id) movieSearchCache.set(String(m.id), m); });
+    renderDropdownItems(matches, searchDropdownList, navigateFn, onUpdateCounts);
+    searchDropdown.classList.remove('hidden');
+    searchDropdown.classList.add('flex');
   }
 
-  searchDropdown.classList.remove('hidden');
-  searchDropdown.classList.add('flex');
+  // 2. Fetch live TMDB search results from backend API
+  try {
+    const apiMatches = await apiSearchMovies(term);
+    if (apiMatches && apiMatches.length > 0) {
+      apiMatches.forEach(m => { if (m.id) movieSearchCache.set(String(m.id), m); });
+      renderDropdownItems(apiMatches, searchDropdownList, navigateFn, onUpdateCounts);
+      searchDropdown.classList.remove('hidden');
+      searchDropdown.classList.add('flex');
+    } else if (matches.length === 0) {
+      searchDropdownList.innerHTML = `<div class="p-3 text-center text-xs font-bold text-[#8491A7]">No movies found</div>`;
+      searchDropdown.classList.remove('hidden');
+      searchDropdown.classList.add('flex');
+    }
+  } catch (err) {
+    if (matches.length === 0) {
+      searchDropdownList.innerHTML = `<div class="p-3 text-center text-xs font-bold text-[#8491A7]">No movies found</div>`;
+      searchDropdown.classList.remove('hidden');
+      searchDropdown.classList.add('flex');
+    }
+  }
 }
 
-export function openMovieDetailsPage(movieId, navigateFn, onUpdateCounts) {
-  const movies = getMovies();
-  const m = movies.find(x => x.id === parseInt(movieId));
+function renderDropdownItems(list, container, navigateFn, onUpdateCounts) {
+  container.innerHTML = list.map(m => {
+    const placeholder = getNeutralPlaceholder(m.title);
+    return `
+      <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 cursor-pointer transition search-item-row" data-movie-id="${m.id}">
+        <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-10 h-14 rounded-lg object-cover bg-[#05070D] shrink-0">
+        <div class="flex-1 min-w-0">
+          <div class="font-black text-xs text-white truncate">${m.title}</div>
+          <div class="text-[10px] font-bold text-[#8491A7] mt-0.5">${m.year || 2024} • ${m.genre}</div>
+        </div>
+        <span class="bg-[#F5C518]/20 text-[#F5C518] border border-[#F5C518]/30 text-[10px] font-black px-2 py-0.5 rounded-full shrink-0">IMDb ${m.imdb_rating ? '★ ' + m.imdb_rating : 'NR'}</span>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.search-item-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const mId = row.dataset.movieId;
+      const targetMovie = list.find(x => String(x.id) === String(mId)) || mId;
+      openMovieDetailsPage(targetMovie, navigateFn, onUpdateCounts);
+    });
+  });
+}
+
+export async function openMovieDetailsPage(movieOrId, navigateFn, onUpdateCounts) {
+  let m = null;
+  if (typeof movieOrId === 'object' && movieOrId !== null) {
+    m = movieOrId;
+    if (m.id) movieSearchCache.set(String(m.id), m);
+  } else if (movieOrId) {
+    const idStr = String(movieOrId);
+    m = movieSearchCache.get(idStr) || getMovies().find(x => String(x.id) === idStr || String(x.tmdb_id) === idStr);
+    if (!m) {
+      try {
+        const res = await safeFetchJson(`${API_BASE_URL}/movies/${encodeURIComponent(idStr)}/`);
+        if (res.ok && res.data) {
+          const raw = res.data;
+          const rawR = raw.rating ?? raw.Rating;
+          const parsedR = (rawR !== null && rawR !== undefined && !isNaN(rawR)) ? parseFloat(rawR) : 8.0;
+          m = {
+            id: raw.movie_id || raw.id,
+            movie_id: raw.movie_id || raw.id,
+            tmdb_id: raw.tmdb_id || raw.movie_id || raw.id,
+            title: raw.title || 'Movie Title',
+            genre: raw.genre || 'Cinema',
+            price: parseFloat(raw.price || 499),
+            rental_price: parseFloat(raw.rental_price || 149),
+            rating: parsedR,
+            description: raw.description || 'No description available.',
+            synopsis: raw.description || 'No description available.',
+            poster: resolvePoster(raw.poster_image, raw.title),
+            backdrop: resolvePoster(raw.backdrop_image || raw.poster_image, raw.title),
+            year: 2024
+          };
+          movieSearchCache.set(String(m.id), m);
+        }
+      } catch (err) {
+        console.warn("Could not fetch single movie details:", err);
+      }
+    }
+  }
+
   if (!m) return;
 
   closeSearchDropdown();
@@ -80,7 +141,7 @@ export function openMovieDetailsPage(movieId, navigateFn, onUpdateCounts) {
         <div class="absolute bottom-0 left-0 right-0 p-6 sm:p-10 flex gap-6 items-end">
           <img src="${m.poster}" onerror="this.onerror=null; this.src='${placeholder}';" class="w-32 sm:w-44 h-48 sm:h-64 rounded-2xl object-cover shadow-2xl border-2 border-white/20 hidden sm:block shrink-0">
           <div class="flex-1 min-w-0 pb-2">
-            <div class="inline-flex items-center gap-2 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-full">★ ${m.rating} • ${m.year || 2024} • TMDB ID: ${m.tmdb_id || m.id}</div>
+            <div class="inline-flex items-center gap-2 bg-[#1677FF] text-white text-[10px] font-black tracking-widest px-3 py-1.5 rounded-full">IMDb ${m.imdb_rating ? '★ ' + m.imdb_rating : 'NR'} • ${m.year || 2024} • TMDB ID: ${m.tmdb_id || m.id}</div>
             <h1 class="text-3xl sm:text-5xl font-black tracking-tighter text-white drop-shadow-lg mt-3">${m.title}</h1>
             <div class="text-[#C7D0E0] text-xs font-bold tracking-widest mt-1.5">${m.genre.toUpperCase()} • DIGITAL LICENSE PLATFORM</div>
           </div>
@@ -112,7 +173,9 @@ export function openMovieDetailsPage(movieId, navigateFn, onUpdateCounts) {
               <div class="flex justify-between"><span class="text-[#8491A7]">Genre</span><span class="font-bold text-white">${m.genre}</span></div>
               <div class="flex justify-between"><span class="text-[#8491A7]">Buy Price</span><span class="font-bold text-[#00A8E8]">${formatPrice(m.price)}</span></div>
               <div class="flex justify-between"><span class="text-[#8491A7]">Rent Price</span><span class="font-bold text-white">${formatPrice(m.rental_price)}</span></div>
-              <div class="flex justify-between"><span class="text-[#8491A7]">TMDB Rating</span><span class="font-bold text-[#00A8E8]">★ ${m.rating}/10</span></div>
+              <div class="flex justify-between"><span class="text-[#8491A7]">IMDb Rating</span><span class="font-bold text-[#F5C518]">${m.imdb_rating ? '★ ' + m.imdb_rating + '/10' : 'IMDb NR'}</span></div>
+              <div class="flex justify-between"><span class="text-[#8491A7]">TMDB Rating</span><span class="font-bold text-white">${m.tmdb_rating ? '★ ' + m.tmdb_rating + '/10' : 'TMDB NR'}</span></div>
+              ${m.imdb_id ? `<a href="https://www.imdb.com/title/${m.imdb_id}/" target="_blank" rel="noopener noreferrer" class="mt-4 w-full inline-flex items-center justify-center gap-2 bg-[#F5C518] text-black py-2.5 rounded-full font-black text-xs tracking-widest hover:bg-[#F5C518]/80 transition"><i class="ri-external-link-line"></i> VIEW ON IMDb</a>` : ''}
             </div>
           </div>
         </div>
@@ -132,8 +195,8 @@ export function openMovieDetailsPage(movieId, navigateFn, onUpdateCounts) {
 
 export function setupSearchListeners(navigateFn, onUpdateCounts) {
   const sInput = document.getElementById('searchInput');
-  sInput?.addEventListener('input', handleSearchInput);
-  sInput?.addEventListener('focus', e => { if (e.target.value.trim()) handleSearchInput(e); });
+  sInput?.addEventListener('input', e => handleSearchInput(e, navigateFn, onUpdateCounts));
+  sInput?.addEventListener('focus', e => { if (e.target.value.trim()) handleSearchInput(e, navigateFn, onUpdateCounts); });
 
   document.addEventListener('click', e => {
     if (!e.target.closest('#navSearchContainer')) {

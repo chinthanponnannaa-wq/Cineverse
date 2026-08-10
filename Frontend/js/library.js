@@ -5,16 +5,129 @@ import { fetchWatchProviders } from './api.js';
 
 let library = [];
 let userOrders = [];
+let hasLibraryFetchError = false;
 
 export function getLibrary() { return library; }
 export function setLibrary(l) { library = l; }
 
 export function getUserOrders() { return userOrders; }
-export function setUserOrders(o) { userOrders = o; }
+export function setUserOrders(o) {
+  userOrders = Array.isArray(o) ? o : [];
+  hasLibraryFetchError = false;
+  processOrdersToLibrary();
+}
+
+export function setLibraryFetchError(isError) {
+  hasLibraryFetchError = isError;
+}
+
+export function processOrdersToLibrary() {
+  const ownedMap = new Map();
+  const rentalsMap = new Map();
+  let totalSpent = 0.0;
+
+  userOrders.forEach(ord => {
+    const status = (ord.order_status || 'placed').toLowerCase();
+    if (status !== 'placed' && status !== 'completed' && status !== 'paid') return;
+
+    totalSpent += parseFloat(ord.total_amount || 0);
+    const items = ord.items || [];
+    const orderDate = ord.order_date || new Date().toISOString();
+
+    items.forEach(it => {
+      const mId = parseInt(it.movie_id || it.id);
+      if (!mId) return;
+
+      const isRental = it.license_type === 'rental';
+      const foundCatalogMovie = getMovies().find(m => m.id === mId);
+      const rawImdbRating = it.imdb_rating ?? (foundCatalogMovie ? foundCatalogMovie.imdb_rating : null);
+      const rawTmdbRating = it.tmdb_rating ?? (foundCatalogMovie ? foundCatalogMovie.tmdb_rating : null);
+      const imdbRating = (rawImdbRating !== null && rawImdbRating !== undefined && !isNaN(rawImdbRating)) ? parseFloat(rawImdbRating) : null;
+      const tmdbRating = (rawTmdbRating !== null && rawTmdbRating !== undefined && !isNaN(rawTmdbRating)) ? parseFloat(rawTmdbRating) : 8.0;
+
+      const itemObj = {
+        id: mId,
+        movie_id: mId,
+        tmdb_id: it.tmdb_id || mId,
+        imdb_id: it.imdb_id || (foundCatalogMovie ? foundCatalogMovie.imdb_id : null),
+        imdb_rating: imdbRating,
+        tmdb_rating: tmdbRating,
+        title: it.name || it.title || 'Movie License',
+        genre: it.genre || 'Cinema',
+        price: parseFloat(it.price || 499),
+        rental_price: parseFloat(it.rental_price || 149),
+        rating: imdbRating ?? tmdbRating,
+        poster: it.poster || `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="400" height="600" fill="%230b1020"/><text x="200" y="300" font-family="sans-serif" font-size="20" fill="%23fff" text-anchor="middle">CINEVERSE</text></svg>')}`,
+        license_type: isRental ? 'rental' : 'purchase',
+        order_date: orderDate
+      };
+
+      if (isRental) {
+        const purchasedTime = new Date(orderDate).getTime();
+        const now = Date.now();
+        const hoursElapsed = (now - purchasedTime) / (1000 * 60 * 60);
+        if (isNaN(hoursElapsed) || hoursElapsed < 48) {
+          rentalsMap.set(mId, itemObj);
+        }
+      } else {
+        ownedMap.set(mId, itemObj);
+      }
+    });
+  });
+
+  const ownedList = Array.from(ownedMap.values());
+  const rentalsList = Array.from(rentalsMap.values());
+
+  library = [...ownedList, ...rentalsList];
+
+  const statOwned = document.getElementById('statOwned');
+  if (statOwned) statOwned.textContent = ownedList.length;
+
+  const statLicenses = document.getElementById('statLicenses');
+  if (statLicenses) statLicenses.textContent = rentalsList.length;
+
+  const statSpent = document.getElementById('statSpent');
+  if (statSpent) statSpent.textContent = formatPrice(totalSpent);
+
+  const libCountEl = document.getElementById('libCount');
+  if (libCountEl) {
+    libCountEl.textContent = library.length;
+    libCountEl.classList.toggle('hidden', library.length === 0);
+  }
+
+  const emptyEl = document.getElementById('libraryEmpty');
+  if (emptyEl) {
+    emptyEl.classList.toggle('hidden', library.length > 0 || hasLibraryFetchError);
+  }
+}
 
 export function renderLibrary() {
+  const emptyEl = document.getElementById('emptyLibraryState');
   const grid = document.getElementById('libraryGrid');
+  const errEl = document.getElementById('libraryErrorState');
+
   if (!grid) return;
+
+  if (hasLibraryFetchError) {
+    if (emptyEl) emptyEl.classList.add('hidden');
+    grid.classList.add('hidden');
+    if (errEl) {
+      errEl.classList.remove('hidden');
+      errEl.innerHTML = `
+        <div class="p-8 text-center bg-[#10182B] rounded-3xl border border-white/10 max-w-md mx-auto my-12">
+          <i class="ri-wifi-off-line text-4xl text-[#00A8E8] mb-3 block"></i>
+          <h3 class="font-black text-white text-lg tracking-tight">Unable to Load Digital Vault</h3>
+          <p class="text-xs text-[#8491A7] font-medium mt-1 mb-5">There was a network problem connecting to the license server.</p>
+          <button id="retryLibraryBtn" class="bg-[#1677FF] text-white px-6 py-2.5 rounded-full font-black text-xs tracking-widest hover:bg-[#3D8BFF] transition">RETRY CONNECTION</button>
+        </div>
+      `;
+      document.getElementById('retryLibraryBtn')?.addEventListener('click', () => {
+        if (window.fetchUserOrdersData) window.fetchUserOrdersData();
+      });
+      return;
+    }
+  }
+
   const librarySearch = document.getElementById('librarySearch');
   const q = librarySearch ? librarySearch.value.toLowerCase() : '';
   let list = [...library];
@@ -41,7 +154,7 @@ export function renderLibrary() {
         </div>
         <div class="p-4">
           <div class="font-black text-sm leading-tight text-white">${m.title}</div>
-          <div class="text-xs font-medium text-[#8491A7] mt-0.5">${m.genre} • ${m.year || 2024}</div>
+          <div class="text-xs font-medium text-[#8491A7] mt-0.5">${m.genre} • IMDb ${m.imdb_rating ? '★ ' + m.imdb_rating : 'NR'}</div>
           <button data-watch="${m.tmdb_id || m.id}" class="mt-3 w-full bg-[#1677FF] text-white py-2.5 rounded-full font-black text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-[#3D8BFF] transition watch-btn"><i class="ri-external-link-line"></i> WHERE TO WATCH</button>
         </div>
       </div>

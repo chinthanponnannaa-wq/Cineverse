@@ -105,75 +105,120 @@ export async function handleCheckout(navigateFn, onUpdateCounts, onRenderLibrary
     return;
   }
 
+  const checkoutBtn = document.getElementById('checkoutBtn');
+  const setButtonState = (loading, text = 'PROCEED TO CHECKOUT') => {
+    if (!checkoutBtn) return;
+    checkoutBtn.disabled = loading;
+    if (loading) {
+      checkoutBtn.innerHTML = 'PROCESSING ORDER... <i class="ri-loader-4-line animate-spin"></i>';
+      checkoutBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    } else {
+      checkoutBtn.innerHTML = `${text} <i class="ri-arrow-right-line"></i>`;
+      checkoutBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+    }
+  };
+
+  setButtonState(true);
+
   const currentUser = getCurrentUser();
-  const subtotal = cart.reduce((s, m) => s + (m.selected_price || m.price), 0);
-  const tax = subtotal * 0.08;
-  const totalAmount = subtotal + tax;
   const selectedPayMethod = document.querySelector('input[name="payMethod"]:checked')?.value || 'COD';
+  const isRazorpay = selectedPayMethod === 'UPI' || selectedPayMethod === 'Razorpay' || selectedPayMethod === 'razorpay';
 
   try {
     const orderPayload = {
       userId: currentUser.user_id,
-      amount: totalAmount,
       items: cart,
       paymentMethod: selectedPayMethod
     };
 
     const data = await apiCreateOrder(orderPayload);
 
-    if (data.success) {
-      if (selectedPayMethod === 'UPI' && data.razorpayOrderId && window.Razorpay) {
-        const options = {
-          "key": data.keyId || "",
-          "amount": Math.round(totalAmount * 100),
-          "currency": "INR",
-          "name": "CineVerse",
-          "description": "Digital Movie License",
-          "order_id": data.razorpayOrderId,
-          "handler": async function (response) {
-            try {
-              const vData = await apiVerifyPayment({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: data.orderId
-              });
-              if (vData.success) {
-                cart = [];
-                const orderData = await fetchUserOrdersApi(currentUser.user_id);
-                setUserOrders(orderData);
-                if (onUpdateCounts) onUpdateCounts();
-                renderCartList(onUpdateCounts);
-                if (onRenderLibrary) onRenderLibrary();
-                showToast('Payment verified & order completed ✓');
-                if (navigateFn) navigateFn('library');
-              } else {
-                showToast('Payment verification failed');
-              }
-            } catch (e) { showToast('Payment verification error'); }
-          },
-          "prefill": {
-            "name": currentUser.name,
-            "email": currentUser.email
-          },
-          "theme": { "color": "#1677FF" }
-        };
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-      } else {
-        cart = [];
-        const orderData = await fetchUserOrdersApi(currentUser.user_id);
-        setUserOrders(orderData);
-        if (onUpdateCounts) onUpdateCounts();
-        renderCartList(onUpdateCounts);
-        if (onRenderLibrary) onRenderLibrary();
-        showToast('Order placed successfully — added to Library ✓');
-        if (navigateFn) navigateFn('library');
+    if (!data || !data.success) {
+      showToast(data?.error || 'Order creation failed. Your cart has been preserved.');
+      setButtonState(false);
+      return;
+    }
+
+    if (isRazorpay && data.razorpayOrderId) {
+      if (!window.Razorpay) {
+        try {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('Failed to load Razorpay SDK'));
+            document.head.appendChild(s);
+          });
+        } catch (e) {
+          showToast('Failed to load Razorpay payment gateway. Cart preserved.');
+          setButtonState(false);
+          return;
+        }
       }
+
+      const options = {
+        "key": data.keyId || "",
+        "amount": Math.round((data.amount || 0) * 100),
+        "currency": "INR",
+        "name": "CineVerse",
+        "description": "Digital Movie License",
+        "order_id": data.razorpayOrderId,
+        "modal": {
+          "ondismiss": function() {
+            showToast('Razorpay payment cancelled. Cart preserved.');
+            setButtonState(false);
+          }
+        },
+        "handler": async function (response) {
+          try {
+            const vData = await apiVerifyPayment({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: data.orderId
+            });
+
+            if (vData && vData.success) {
+              cart = [];
+              const orderData = await fetchUserOrdersApi(currentUser.user_id);
+              setUserOrders(orderData);
+              if (onUpdateCounts) onUpdateCounts();
+              renderCartList(onUpdateCounts);
+              if (onRenderLibrary) onRenderLibrary();
+              showToast('Payment verified — added to Library ✓');
+              setButtonState(false);
+              if (navigateFn) navigateFn('library');
+            } else {
+              showToast(vData?.error || 'Payment verification failed. Your cart has been preserved.');
+              setButtonState(false);
+            }
+          } catch (e) {
+            showToast('Payment verification error. Your cart has been preserved.');
+            setButtonState(false);
+          }
+        },
+        "prefill": {
+          "name": currentUser.name,
+          "email": currentUser.email
+        },
+        "theme": { "color": "#1677FF" }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } else {
-      showToast(data.error || 'Order creation failed');
+      cart = [];
+      const orderData = await fetchUserOrdersApi(currentUser.user_id);
+      setUserOrders(orderData);
+      if (onUpdateCounts) onUpdateCounts();
+      renderCartList(onUpdateCounts);
+      if (onRenderLibrary) onRenderLibrary();
+      showToast('Order placed successfully — added to Library ✓');
+      setButtonState(false);
+      if (navigateFn) navigateFn('library');
     }
   } catch (err) {
-    showToast('Network error during checkout');
+    showToast('Network error during checkout. Your cart has been preserved.');
+    setButtonState(false);
   }
 }
