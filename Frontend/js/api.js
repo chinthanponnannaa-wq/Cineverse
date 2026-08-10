@@ -10,28 +10,31 @@ export async function safeFetchJson(url, options = {}, timeoutMs = 10000) {
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timeoutId);
     
-    if (res.status === 401) {
-      return { ok: false, status: 401, error: 'Your session has expired. Please sign in again.' };
-    }
-    if (res.status === 403) {
-      return { ok: false, status: 403, error: 'Access denied.' };
-    }
-    if (res.status === 404) {
-      return { ok: false, status: 404, error: 'Requested resource not found.' };
-    }
-    if (res.status >= 500) {
-      return { ok: false, status: res.status, error: 'Server error. Please try again later.' };
-    }
-    
-    let data;
+    let data = null;
     try {
       data = await res.json();
     } catch (parseErr) {
-      return { ok: false, status: res.status, error: 'Invalid response format from server.' };
+      data = null;
     }
-    
+
     if (!res.ok) {
-      return { ok: false, status: res.status, data, error: data.error || data.message || 'Request failed.' };
+      const serverErr = data && (data.error || data.message);
+      if (serverErr) {
+        return { ok: false, status: res.status, data, error: serverErr };
+      }
+      if (res.status === 401) {
+        return { ok: false, status: 401, data, error: 'Your session has expired. Please sign in again.' };
+      }
+      if (res.status === 403) {
+        return { ok: false, status: 403, data, error: 'Access denied.' };
+      }
+      if (res.status === 404) {
+        return { ok: false, status: 404, data, error: 'Account not found. Please check your email or register.' };
+      }
+      if (res.status >= 500) {
+        return { ok: false, status: res.status, data, error: 'Server error. Please try again later.' };
+      }
+      return { ok: false, status: res.status, data, error: 'Request failed.' };
     }
     
     return { ok: true, status: res.status, data };

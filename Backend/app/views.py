@@ -409,9 +409,9 @@ def login_user(request):
                             }
                         })
                     else:
-                        return JsonResponse({"error": "Invalid email or password"}, status=401)
+                        return JsonResponse({"error": "Invalid email or password."}, status=401)
                 else:
-                    return JsonResponse({"error": "Invalid email or password"}, status=401)
+                    return JsonResponse({"error": "Account not found. Please check your email or register."}, status=404)
                     
         except Exception as e:
             print("Login error:", e)

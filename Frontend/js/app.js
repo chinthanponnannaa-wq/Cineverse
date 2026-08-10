@@ -30,6 +30,7 @@ window.setCurrentUser = setCurrentUser;
 window.getIsLoggedIn = getIsLoggedIn;
 window.setIsLoggedIn = setIsLoggedIn;
 window.saveAuthState = saveAuthState;
+window.updateNavAuthUI = updateNavAuthUI;
 window.apiLogin = apiLogin;
 window.fetchUserOrdersData = fetchUserOrdersData;
 window.fetchMoviesData = fetchMoviesData;

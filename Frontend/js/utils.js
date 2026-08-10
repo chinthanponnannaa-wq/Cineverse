@@ -8,13 +8,25 @@ export function formatPrice(p) {
 }
 
 // UNIVERSAL USER SILHOUETTE AVATAR (Vector SVG matching user reference outline)
-export function getInitialsAvatar(name) {
+export function getInitialsAvatar(name, customAvatar) {
+  if (customAvatar && typeof customAvatar === 'string' && (customAvatar.startsWith('http://') || customAvatar.startsWith('https://') || customAvatar.startsWith('data:'))) {
+    return customAvatar;
+  }
   const userSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
-    <rect width="120" height="120" fill="%2310182b" rx="60"/>
-    <circle cx="60" cy="42" r="22" fill="none" stroke="%2300a8e8" stroke-width="6"/>
-    <path d="M 22 100 C 22 70, 38 64, 60 64 C 82 64, 98 70, 98 100" fill="none" stroke="%2300a8e8" stroke-width="6" stroke-linecap="round"/>
+    <rect width="120" height="120" fill="#10182B" rx="60"/>
+    <circle cx="60" cy="42" r="22" fill="none" stroke="#00A8E8" stroke-width="6"/>
+    <path d="M 22 100 C 22 70, 38 64, 60 64 C 82 64, 98 70, 98 100" fill="none" stroke="#00A8E8" stroke-width="6" stroke-linecap="round"/>
   </svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(userSvg)}`;
+
+  let base64Svg = '';
+  if (typeof btoa === 'function') {
+    base64Svg = btoa(userSvg);
+  } else if (typeof Buffer !== 'undefined') {
+    base64Svg = Buffer.from(userSvg).toString('base64');
+  } else {
+    return `data:image/svg+xml;utf8,${encodeURIComponent(userSvg)}`;
+  }
+  return `data:image/svg+xml;base64,${base64Svg}`;
 }
 
 // CLEAN SVG NEUTRAL PLACEHOLDER (URI Encoded to prevent double-quote HTML leakage)

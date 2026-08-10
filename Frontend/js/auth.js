@@ -38,7 +38,8 @@ export function updateNavAuthUI() {
   const navProfileBtn = document.getElementById('navProfileBtn');
   const navAvatarImg = document.getElementById('navAvatarImg');
 
-  const avatarUrl = getInitialsAvatar();
+  const customImg = currentUser ? (currentUser.profile_image || currentUser.avatar_url || currentUser.avatar) : null;
+  const avatarUrl = getInitialsAvatar(currentUser ? currentUser.name : '', customImg);
 
   if (isLoggedIn && currentUser) {
     if (loginBtn) {
@@ -51,6 +52,10 @@ export function updateNavAuthUI() {
     }
     if (navAvatarImg) {
       navAvatarImg.src = avatarUrl;
+      navAvatarImg.onerror = function() {
+        this.onerror = null;
+        this.src = getInitialsAvatar();
+      };
       navAvatarImg.classList.remove('hidden');
     }
     const pName = document.getElementById('profileName');
@@ -60,7 +65,13 @@ export function updateNavAuthUI() {
     if (pSub) pSub.textContent = `MEMBER SINCE 2026 • ${currentUser.email.toUpperCase()}`;
 
     const pAvatar = document.getElementById('profileAvatar');
-    if (pAvatar) pAvatar.src = avatarUrl;
+    if (pAvatar) {
+      pAvatar.src = avatarUrl;
+      pAvatar.onerror = function() {
+        this.onerror = null;
+        this.src = getInitialsAvatar();
+      };
+    }
   } else {
     if (loginBtn) {
       loginBtn.style.display = 'inline-flex';
@@ -78,7 +89,13 @@ export function updateNavAuthUI() {
     if (pSub) pSub.textContent = 'NOT SIGNED IN — PLEASE SIGN IN TO ACCESS VAULT';
 
     const pAvatar = document.getElementById('profileAvatar');
-    if (pAvatar) pAvatar.src = avatarUrl;
+    if (pAvatar) {
+      pAvatar.src = avatarUrl;
+      pAvatar.onerror = function() {
+        this.onerror = null;
+        this.src = getInitialsAvatar();
+      };
+    }
   }
 }
 
