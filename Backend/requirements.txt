@@ -4,4 +4,7 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 razorpay>=1.4.1
 mysql-connector-python>=8.0.0
+mysqlclient>=2.2.0
 groq>=0.4.0
+gunicorn>=23.0.0
+whitenoise>=6.8.0
